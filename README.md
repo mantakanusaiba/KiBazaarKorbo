@@ -1,1 +1,1 @@
-# marketmind-ai
+# KiBazaarKorbo.com
