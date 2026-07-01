@@ -10,7 +10,7 @@ backend/ml/models/*.pkl
 
 # Data files (raw scraped data — too large for git)
 data/raw/
-data/processed/market_prices_clean.csv
+
 
 # Node
 node_modules/
