@@ -29,13 +29,144 @@ HEADERS = {
     "Referer": "https://moa-services.com/market-directory/market-daily-price-report",
 }
 
-# Fill in your 5 confirmed markets here (same shape as fetch_historical_prices.py)
+# Fill in your confirmed markets here (same shape as fetch_historical_prices.py)
+
 MARKET_CONFIGS = {
-    "kawran_bazar": {"division_id": 6, "district_id": 47, "upazila_id": 494, "market_id": 8},
-    "jatrabari":    {"division_id": 6, "district_id": 47, "upazila_id": 494, "market_id": 4},   
-    "mirpur_11":    {"division_id": 6, "district_id": 47, "upazila_id": 494, "market_id": 11},  
-    # "market_4":   {"division_id": 6, "district_id": 47, "upazila_id": 494, "market_id": ???},
-    # "market_5":   {"division_id": 6, "district_id": 47, "upazila_id": 494, "market_id": ???},
+     "kawran_bazar": {
+        "division_id": 6,
+        "district_id": 47,
+        "upazila_id": 494,
+        "market_id": 8,
+    },
+    "mirpur_1_bazar": {
+        "division_id": 6,
+        "district_id": 47,
+        "upazila_id": 494,
+        "market_id": 11,
+    },
+    "mohammadpur_krishi_market": {
+        "division_id": 6,
+        "district_id": 47,
+        "upazila_id": 494,
+        "market_id": 4,
+    },
+
+    # Chittagong
+    "chittagong_sadar_bazar": {
+        "division_id": 1,
+        "district_id": 8,
+        "upazila_id": 499,
+        "market_id": 79,
+    },
+
+    # Rajshahi
+    "rajshahi_sadar_bazar": {
+        "division_id": 2,
+        "district_id": 15,
+        "upazila_id": 496,
+        "market_id": 13,
+    },
+
+    # Rangpur
+    "rangpur_city_bazar": {
+        "division_id": 7,
+        "district_id": 59,
+        "upazila_id": 502,
+        "market_id": 38,
+    },
+
+   "cox_bazar_sadar_bajar": {
+        "division_id": 1,
+        "district_id": 9,
+        "upazila_id": 80,
+        "market_id": 103,
+    },
+    "feni_sadar_bajar": {
+        "division_id": 1,
+        "district_id": 2,
+        "upazila_id": 19,
+        "market_id": 104,
+    },
+    "lakshmipur_sadar_bajar": {
+        "division_id": 1,
+        "district_id": 7,
+        "upazila_id": 60,
+        "market_id": 39,
+    },
+    "noakhali_sadar_bajar": {
+        "division_id": 1,
+        "district_id": 5,
+        "upazila_id": 43,
+        "market_id": 106,
+    },
+
+    # Dhaka division districts
+    "faridpur_sadar_bajar": {
+        "division_id": 6,
+        "district_id": 52,
+        "upazila_id": 390,
+        "market_id": 52,
+    },
+    "gopalganj_sadar_borobajar": {
+        "division_id": 6,
+        "district_id": 51,
+        "upazila_id": 385,
+        "market_id": 54,
+    },
+    "kishorganj_bajar": {
+        "division_id": 6,
+        "district_id": 45,
+        "upazila_id": 352,
+        "market_id": 108,
+    },
+    "madaripur_sadar_bajar": {
+        "division_id": 6,
+        "district_id": 50,
+        "upazila_id": 381,
+        "market_id": 25,
+    },
+    "manikganj_bajar": {
+        "division_id": 6,
+        "district_id": 46,
+        "upazila_id": 360,
+        "market_id": 109,
+    },
+    "munshiganj_sadar_bajar": {
+        "division_id": 6,
+        "district_id": 48,
+        "upazila_id": 370,
+        "market_id": 59,
+    },
+    "narayanganj_sadar_bajar": {
+        "division_id": 6,
+        "district_id": 43,
+        "upazila_id": 330,
+        "market_id": 17,
+    },
+    "norshingdi_sadar_bajar": {
+        "division_id": 6,
+        "district_id": 40,
+        "upazila_id": 313,
+        "market_id": 26,
+    },
+    "rajbari_sadar_bajar": {
+        "division_id": 6,
+        "district_id": 49,
+        "upazila_id": 376,
+        "market_id": 47,
+    },
+    "shariyatpur_sadar_bajar": {
+        "division_id": 6,
+        "district_id": 42,
+        "upazila_id": 322,
+        "market_id": 110,
+    },
+    "tangail_bajar": {
+        "division_id": 6,
+        "district_id": 44,
+        "upazila_id": 342,
+        "market_id": 111,
+    },
 }
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -116,7 +247,7 @@ def parse_rows(raw_data: list[dict], market_key: str, report_date: str, commodit
             continue
 
         rows.append({
-            "date": report_date,
+            "date": d.strftime("%m/%d/%Y"),
             "market": market_key,
             "standard_key": standard_key,
             "product_en": product_en,
