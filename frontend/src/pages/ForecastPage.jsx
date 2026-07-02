@@ -1,14 +1,17 @@
 import { useEffect, useState } from "react";
-import { getProducts, getExplanation, getPriceHistory } from "../api/client";
+import { getProducts, getExplanation, getPriceHistory, getForecast } from "../api/client";
 import AdviceBadge from "../components/AdviceBadge";
 import ExplanationBox from "../components/ExplanationBox";
 import TrendChart from "../components/TrendChart";
 import ProductSelector, { toLabel } from "../components/ProductSelector";
 
+const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
 export default function ForecastPage() {
     const [products, setProducts] = useState([]);
     const [selected, setSelected] = useState("");
     const [result, setResult] = useState(null);
+    const [week, setWeek] = useState([]);
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -24,6 +27,7 @@ export default function ForecastPage() {
         if (!selected) return;
         setLoading(true);
         setResult(null);
+        setWeek([]);
         setError(null);
         setHistory([]);
         try {
@@ -34,6 +38,13 @@ export default function ForecastPage() {
             if (explRes.data.error) throw new Error(explRes.data.error);
             setResult(explRes.data);
             setHistory(histRes.data);
+
+            // Pull the full 7-day horizon, pinned to the same market the
+            // explanation/advice was computed for so the numbers agree.
+            const weekRes = await getForecast(selected, explRes.data.market, 7);
+            if (!weekRes.data.error) {
+                setWeek(weekRes.data.forecast || []);
+            }
         } catch (e) {
             setError(e.message || "Forecast failed.");
         } finally {
@@ -46,7 +57,7 @@ export default function ForecastPage() {
     return (
         <div>
             <div style={{ marginBottom: 28 }}>
-                <h1 style={{ marginBottom: 6 }}>Tomorrow's Forecast</h1>
+                <h1 style={{ marginBottom: 6 }}>7-Day Forecast</h1>
                 <p style={{ color: "var(--muted)", fontSize: 13 }}>
                     XGBoost prediction + AI explanation · Pick a product and run
                 </p>
