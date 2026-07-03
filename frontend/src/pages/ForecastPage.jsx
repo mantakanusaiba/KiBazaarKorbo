@@ -3,6 +3,8 @@ import { getProducts, getExplanation, getPriceHistory, getForecast } from "../ap
 import AdviceBadge from "../components/AdviceBadge";
 import ExplanationBox from "../components/ExplanationBox";
 import TrendChart from "../components/TrendChart";
+import ForecastBandChart from "../components/ForecastBandChart";
+import WhyFactors from "../components/WhyFactors";
 import ProductSelector, { toLabel } from "../components/ProductSelector";
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -116,6 +118,11 @@ export default function ForecastPage() {
                         <NumBox
                             label="Tomorrow (predicted)"
                             value={`৳${result.predicted_tomorrow}`}
+                            sub={
+                                result.predicted_low != null
+                                    ? `Likely ৳${result.predicted_low} – ৳${result.predicted_high}`
+                                    : null
+                            }
                             accent={dir === "increase" ? "var(--up)" : dir === "decrease" ? "var(--down)" : null}
                         />
                         <NumBox
@@ -135,6 +142,27 @@ export default function ForecastPage() {
 
                     {/* AI explanation */}
                     <ExplanationBox text={result.explanation} />
+
+                    {/* SHAP-ranked model drivers for this exact prediction */}
+                    <WhyFactors factors={result.top_factors} />
+
+                    {/* 5/7-day forecast with real uncertainty band */}
+                    {week.length > 0 && (
+                        <div style={{
+                            background: "var(--surface)",
+                            border: "1px solid var(--border)",
+                            borderRadius: "var(--radius-lg)",
+                            padding: "18px 20px",
+                        }}>
+                            <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>
+                                {toLabel(selected)} — Forecast with confidence band
+                            </div>
+                            <div style={{ fontSize: 11.5, color: "var(--muted)", marginBottom: 10 }}>
+                                Shaded area = model's P10–P90 range (80% confidence), line = median prediction
+                            </div>
+                            <ForecastBandChart data={week} />
+                        </div>
+                    )}
 
                     {/* Chart */}
                     {history.length > 0 && (
@@ -156,7 +184,7 @@ export default function ForecastPage() {
     );
 }
 
-function NumBox({ label, value, accent }) {
+function NumBox({ label, value, sub, accent }) {
     return (
         <div style={{
             background: "var(--surface)",
@@ -171,6 +199,9 @@ function NumBox({ label, value, accent }) {
                 fontWeight: 600,
                 color: accent || "var(--text)",
             }}>{value}</div>
+            {sub && (
+                <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 4 }}>{sub}</div>
+            )}
         </div>
     );
 }
