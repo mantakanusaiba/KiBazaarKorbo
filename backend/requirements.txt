@@ -3,5 +3,9 @@ uvicorn[standard]
 pandas
 xgboost
 scikit-learn
+shap
 groq
 python-dotenv
+apscheduler
+
+requests==2.34.2

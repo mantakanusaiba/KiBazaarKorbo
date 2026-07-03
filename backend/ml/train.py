@@ -40,6 +40,16 @@ MAX_MAPE = 15
 MIN_UNIQUE_TARGETS = 3
 HORIZONS = range(1, MAX_HORIZON_DAYS + 1)  # 1..7, covers both 5-day and 7-day forecasts
 
+# Quantiles trained per (product, horizon) model. XGBoost's native
+# multi-quantile objective (reg:quantileerror) fits all three in ONE
+# booster with a 3-wide output, so models[product][h] is still a single
+# model object — predict() just returns shape (n, 3) instead of (n,).
+# Order matters: index 0=P10 (low), 1=P50 (median/point forecast),
+# 2=P90 (high). This gives every forecast a real uncertainty band instead
+# of a single unqualified number.
+QUANTILES = [0.1, 0.5, 0.9]
+P50_IDX = QUANTILES.index(0.5)
+
 
 # --------------------------------------------------
 # Helper functions
@@ -181,7 +191,8 @@ for product in TARGET_PRODUCTS:
             continue
 
         model = xgb.XGBRegressor(
-            objective="reg:squarederror",
+            objective="reg:quantileerror",
+            quantile_alpha=QUANTILES,
             n_estimators=300,
             max_depth=5,
             learning_rate=0.05,
@@ -199,10 +210,18 @@ for product in TARGET_PRODUCTS:
             verbose=False
         )
 
-        preds = model.predict(X_te)
+        preds_all = model.predict(X_te)  # shape (n, 3) -> [p10, p50, p90]
+        preds_lo, preds, preds_hi = preds_all[:, 0], preds_all[:, P50_IDX], preds_all[:, 2]
 
         mae = mean_absolute_error(y_te, preds)
         mape = safe_mape(y_te.values, preds)
+
+        # Coverage: how often the true value actually fell inside the
+        # predicted [P10, P90] band. For a well-calibrated model this
+        # should land close to 80%. Reported purely for visibility into
+        # how trustworthy the uncertainty band is per product/horizon.
+        y_te_arr = y_te.values
+        coverage = float(np.mean((y_te_arr >= preds_lo) & (y_te_arr <= preds_hi)) * 100)
 
         # Rule 3: invalid metrics
         if not np.isfinite(mae) or not np.isfinite(mape):
@@ -224,6 +243,7 @@ for product in TARGET_PRODUCTS:
         metrics.setdefault(product_key, {})[f"t{h}"] = {
             "mae": float(round(mae, 2)),
             "mape": float(round(mape, 2)),
+            "p10_p90_coverage_pct": float(round(coverage, 1)),
             "samples": int(len(sub)),
             "train_samples": int(len(X_tr)),
             "test_samples": int(len(X_te)),
@@ -234,6 +254,7 @@ for product in TARGET_PRODUCTS:
             f"  Keeping {product_key} t+{h}: "
             f"MAE={mae:.2f} BDT | "
             f"MAPE={mape:.2f}% | "
+            f"coverage={coverage:.0f}% | "
             f"n={len(sub)}"
         )
 
