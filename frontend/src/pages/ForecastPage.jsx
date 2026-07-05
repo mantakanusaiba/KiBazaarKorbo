@@ -1,18 +1,106 @@
 import { useState } from "react";
 import { getExplanation, getForecast } from "../api/client";
-import DecisionSummary from "../components/DecisionSummary";
-import ExplanationBox from "../components/ExplanationBox";
+import ProductSelector from "../components/ProductSelector";
 import WhyFactors from "../components/WhyFactors";
-import ForecastTimeline from "../components/ForecastTimeline";
-import ProductSelector, { toLabel } from "../components/ProductSelector";
 import { marketLabel } from "../data/marketRegions";
 import useSessionState from "../hooks/useSessionState";
 import {
-    getCategoryMeta,
-    getProductCategory,
+    computeConfidence,
+    computeRisk,
+    computeSavings,
+    computeTrend,
+} from "../utils/forecastMath";
+import {
+    formatProductName,
     getProductImage,
     translateApiText,
 } from "../utils/productAssets";
+import { bnNum, bnPct, bnTk } from "../utils/banglaFormat";
+
+const ADVICE_UI = {
+    buy_now: {
+        icon: "✅",
+        title: "আজ কিনুন",
+        short: "এখন কিনলে ভালো হতে পারে",
+        bg: "var(--hero-success-bg)",
+        border: "var(--hero-border)",
+        text: "var(--hero-success)",
+    },
+    wait: {
+        icon: "⏳",
+        title: "অপেক্ষা করুন",
+        short: "কিছুদিন অপেক্ষা করলে ভালো হতে পারে",
+        bg: "var(--amber-50)",
+        border: "#fde68a",
+        text: "var(--amber-600)",
+    },
+    stable: {
+        icon: "✅",
+        title: "দাম প্রায় একই",
+        short: "দাম খুব বেশি বদলানোর সম্ভাবনা কম",
+        bg: "var(--hero-success-bg)",
+        border: "var(--hero-border)",
+        text: "var(--hero-success)",
+    },
+};
+
+function safeNumber(value) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : 0;
+}
+
+function normalizeAdvice(advice = "") {
+    const text = String(advice).toLowerCase();
+
+    if (
+        text.includes("buy") ||
+        text.includes("today") ||
+        text.includes("now") ||
+        text.includes("কিন")
+    ) {
+        return "buy_now";
+    }
+
+    if (
+        text.includes("wait") ||
+        text.includes("অপেক্ষা")
+    ) {
+        return "wait";
+    }
+
+    return "stable";
+}
+
+function getChangePct(result) {
+    const current = safeNumber(result?.current_avg);
+    const next = safeNumber(result?.predicted_tomorrow);
+
+    if (!current || !next) return 0;
+
+    return ((next - current) / current) * 100;
+}
+
+function getTrendSentence(week) {
+    const trend = computeTrend(week);
+
+    if (!trend) return "মডেল এখনো পুরো ট্রেন্ড বুঝছে।";
+
+    if (trend.direction === "rising") {
+        return `মডেল বলছে সামনে দাম প্রায় ${bnPct(Math.abs(trend.pct), 1)} বাড়তে পারে।`;
+    }
+
+    if (trend.direction === "falling") {
+        return `মডেল বলছে সামনে দাম প্রায় ${bnPct(Math.abs(trend.pct), 1)} কমতে পারে।`;
+    }
+
+    return "মডেল বলছে সামনে দাম প্রায় একই থাকতে পারে।";
+}
+
+function getChangeColor(changePct) {
+    if (changePct > 1) return "var(--red-600)";
+    if (changePct < -1) return "var(--hero-success)";
+    return "var(--hero-text)";
+}
 
 export default function ForecastPage() {
     const [selected, setSelected] = useSessionState("forecast_selected_product", "");
@@ -46,125 +134,59 @@ export default function ForecastPage() {
                 setWeek(weekRes.data.forecast || []);
             }
         } catch (e) {
-            setError(e.message || "ফোরকাস্ট করা যায়নি।");
+            setError(e.message || "ফোরকাস্ট করা যায়নি।");
         } finally {
             setLoading(false);
         }
     };
 
-    const meta = selected
-        ? getCategoryMeta(getProductCategory(selected))
-        : null;
-
     return (
         <div className="page-enter">
-            <section
-                className="page-hero"
+            <ForecastHero selected={selected} />
+
+            <div
                 style={{
-                    display: "grid",
-                    gridTemplateColumns: "minmax(0, 1.1fr) 240px",
-                    gap: 24,
-                    alignItems: "center",
-                    marginBottom: 20,
+                    padding: 16,
+                    marginBottom: 18,
+                    borderRadius: 22,
+                    background: "var(--hero-card)",
+                    border: "1px solid var(--hero-border)",
+                    boxShadow: "0 12px 30px rgba(47, 93, 40, 0.06)",
                 }}
             >
-                <div>
-                    <div className="hero-kicker">📈 AI দিয়ে দামের ফোরকাস্ট</div>
-
-                    <h1 className="page-title">আজ কিনবো, নাকি অপেক্ষা করবো?</h1>
-
-                    <p className="page-subtitle">
-                        DAM ডাটা, দামের ট্রেন্ড, আবহাওয়া, সপ্তাহান্ত ও ছুটির তথ্য দেখে AI সহজভাবে পরামর্শ দেয়।
-                    </p>
-                </div>
-
-                {selected && (
-                    <div
-                        style={{
-                            height: 210,
-                            borderRadius: 28,
-                            background: "rgba(255,255,255,0.18)",
-                            display: "grid",
-                            placeItems: "center",
-                            overflow: "hidden",
-                        }}
-                    >
-                        <img
-                            src={getProductImage(selected)}
-                            alt={toLabel(selected)}
-                            style={{
-                                width: "100%",
-                                height: "100%",
-                                objectFit: "contain",
-                                padding: 18,
-                                filter: "drop-shadow(0 24px 30px rgba(0,0,0,0.22))",
-                            }}
-                        />
-                    </div>
-                )}
-            </section>
-
-            <div className="glass-card" style={{ padding: 16, marginBottom: 20 }}>
-                <div
-                    style={{
-                        display: "flex",
-                        gap: 12,
-                        flexWrap: "wrap",
-                        alignItems: "center",
-                    }}
-                >
+                <div style={{ display: "grid", gap: 12 }}>
                     <ProductSelector value={selected} onChange={setSelected} />
 
-                    <button
-                        onClick={run}
-                        disabled={loading || !selected}
-                        className="mm-btn"
-                    >
-                        {loading ? "মডেল চলছে…" : "ফোরকাস্ট দেখুন"}
-                    </button>
-
-                    {selected && meta && (
-                        <div className="product-category" style={{ marginBottom: 0 }}>
-                            {meta.icon} {meta.label}
-                        </div>
-                    )}
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
+                        <button
+                            onClick={run}
+                            disabled={loading || !selected}
+                            className="mm-btn"
+                            style={{
+                                minWidth: 180,
+                                boxShadow: "0 12px 24px rgba(93, 163, 61, 0.24)",
+                            }}
+                        >
+                            {loading ? "মডেল চলছে…" : "ফোরকাস্ট দেখুন"}
+                        </button>
+                    </div>
                 </div>
             </div>
 
             {error && (
-                <div className="alert-error" style={{ marginBottom: 20 }}>
+                <div className="alert-error" style={{ marginBottom: 18 }}>
                     ⚠️ {error}
                 </div>
             )}
 
             {result && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                    <DecisionSummary
-                        productLabel={toLabel(selected)}
-                        marketName={marketLabel(result.market)}
-                        result={result}
-                        week={week}
-                    />
+                <div style={{ display: "grid", gap: 18 }}>
+                    <MainForecastCard selected={selected} result={result} week={week} />
 
-                    <SectionCard title="AI কেন এই পরামর্শ দিচ্ছে?">
-                        <ExplanationBox text={translateApiText(result.explanation)} />
-
-                        <ForecastSignals result={result} />
-
-                        {result.top_factors?.length > 0 && (
-                            <div style={{ marginTop: 14 }}>
-                                <WhyFactors factors={result.top_factors} />
-                            </div>
-                        )}
-                    </SectionCard>
+                    <AIReasonCard result={result} />
 
                     {week.length > 0 && (
-                        <SectionCard title="দামের আগাম ধারণা">
-                            <ForecastTimeline
-                                week={week}
-                                currentAvg={result.current_avg}
-                            />
-                        </SectionCard>
+                        <FuturePriceCard week={week} currentAvg={result.current_avg} />
                     )}
                 </div>
             )}
@@ -172,71 +194,607 @@ export default function ForecastPage() {
     );
 }
 
-function SectionCard({ title, children }) {
+function ForecastHero({ selected }) {
+    const image = selected ? getProductImage(selected) : getProductImage("mango_fazli");
+
     return (
-        <div className="glass-card" style={{ padding: "20px 22px" }}>
+        <section
+            style={{
+                position: "relative",
+                overflow: "hidden",
+                borderRadius: 28,
+                marginBottom: 20,
+                padding: "38px 42px",
+                minHeight: 210,
+                display: "grid",
+                gridTemplateColumns: "minmax(0, 1fr) 340px",
+                gap: 28,
+                alignItems: "center",
+                background: "linear-gradient(135deg, #F5FAEF 0%, #EEF7E7 35%, #F8FCF5 70%, #EAF6E1 100%)",
+                border: "1px solid var(--hero-border)",
+                boxShadow: "0 18px 40px rgba(47, 93, 40, 0.1)",
+            }}
+        >
             <div
                 style={{
-                    fontWeight: 950,
-                    fontSize: 16,
-                    color: "var(--gray-900)",
-                    marginBottom: 12,
+                    position: "absolute",
+                    inset: 0,
+                    opacity: 0.4,
+                    backgroundImage:
+                        "radial-gradient(circle at 1px 1px, var(--hero-border) 1px, transparent 0)",
+                    backgroundSize: "18px 18px",
                 }}
-            >
-                {title}
+            />
+
+            <div style={{ position: "relative", zIndex: 1 }}>
+
+
+                <h1
+                    style={{
+                        margin: 0,
+                        maxWidth: 520,
+                        fontFamily: "var(--font-display)",
+                        fontSize: 34,
+                        lineHeight: 1.18,
+                        letterSpacing: "-0.8px",
+                        color: "var(--hero-heading)",
+                    }}
+                >
+                    আজ কিনবো,
+                    <br />
+                    নাকি অপেক্ষা করবো?
+                </h1>
+
+                <p
+                    style={{
+                        maxWidth: 590,
+                        margin: "12px 0 0",
+                        fontSize: 14.5,
+                        lineHeight: 1.8,
+                        color: "var(--hero-text)",
+                        fontWeight: 600,
+                    }}
+                >
+                    DAM ডাটা, দামের ট্রেন্ড, আবহাওয়া, সপ্তাহান্ত ও ছুটির তথ্য দেখে AI সহজ ভাষায় পরামর্শ দেয়।
+                </p>
             </div>
 
-            {children}
+            <div
+                style={{
+                    position: "relative",
+                    zIndex: 1,
+                    height: 190,
+                    borderRadius: 26,
+                    background: "var(--hero-card)",
+                    border: "10px solid rgba(255,255,255,0.72)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    overflow: "hidden",
+                    boxShadow: "0 18px 34px rgba(47, 93, 40, 0.1)",
+                    padding: 14,
+                }}
+            >
+                <img
+                    src={image}
+                    alt="পণ্য"
+                    style={{
+                        display: "block",
+                        maxWidth: "100%",
+                        maxHeight: "100%",
+                        width: "auto",
+                        height: "auto",
+                        objectFit: "contain",
+                        objectPosition: "center center",
+                        filter: "drop-shadow(0 18px 24px rgba(47,93,40,0.16))",
+                    }}
+                />
+            </div>
+        </section>
+    );
+}
+
+function MainForecastCard({ selected, result, week }) {
+    const adviceKey = normalizeAdvice(result.advice);
+    const advice = ADVICE_UI[adviceKey] || ADVICE_UI.stable;
+
+    const changePct = getChangePct(result);
+    const changeColor = getChangeColor(changePct);
+
+    const confidence = computeConfidence(
+        result.predicted_low,
+        result.predicted_high,
+        result.predicted_tomorrow
+    );
+
+    const risk = confidence ? computeRisk(confidence.bandPct) : null;
+
+    const savings = computeSavings({
+        currentAvg: result.current_avg,
+        predictedTomorrow: result.predicted_tomorrow,
+        week,
+    });
+
+    return (
+        <section
+            style={{
+                padding: 0,
+                borderRadius: 24,
+                overflow: "hidden",
+                background: "var(--hero-card)",
+                border: "1px solid var(--hero-border)",
+                boxShadow: "0 18px 45px rgba(47, 93, 40, 0.07)",
+            }}
+        >
+            <div
+                style={{
+                    padding: "20px 22px",
+                    display: "grid",
+                    gridTemplateColumns: "minmax(0, 1fr) 300px",
+                    gap: 18,
+                    alignItems: "start",
+                }}
+            >
+                <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                        <div>
+                            <h2
+                                style={{
+                                    margin: 0,
+                                    fontSize: 22,
+                                    fontFamily: "var(--font-display)",
+                                    color: "var(--hero-heading)",
+                                    letterSpacing: "-0.3px",
+                                }}
+                            >
+                                {formatProductName(selected)}
+                            </h2>
+
+                            <p style={{ margin: "3px 0 0", fontSize: 12, color: "var(--hero-text-light)" }}>
+                                {marketLabel(result.market)}
+                            </p>
+                        </div>
+                    </div>
+
+                    <p
+                        style={{
+                            margin: "12px 0 16px",
+                            fontSize: 14,
+                            color: "var(--hero-text)",
+                            lineHeight: 1.7,
+                            fontWeight: 600,
+                        }}
+                    >
+                        {translateApiText(result.reason) || getTrendSentence(week)}
+                    </p>
+                </div>
+
+                <div
+                    style={{
+                        background: advice.bg,
+                        border: `1px solid ${advice.border}`,
+                        borderRadius: 18,
+                        padding: "14px 16px",
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: 12,
+                    }}
+                >
+                    <span style={{ fontSize: 24 }}>{advice.icon}</span>
+
+                    <div>
+                        <div
+                            style={{
+                                fontSize: 15,
+                                fontWeight: 950,
+                                color: advice.text,
+                                marginBottom: 4,
+                            }}
+                        >
+                            {advice.title}
+                        </div>
+
+                        <div style={{ fontSize: 12.5, color: "var(--hero-text)", lineHeight: 1.6 }}>
+                            {advice.short}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div
+                style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(4, 1fr)",
+                    borderTop: "1px solid var(--hero-border)",
+                    borderBottom: "1px solid var(--hero-border)",
+                    background: "linear-gradient(180deg, #fff, var(--hero-bg-soft))",
+                }}
+            >
+                <PriceColumn
+                    label="এখনকার বাজার দাম"
+                    value={bnTk(result.current_avg, 2)}
+                    sub="লাইভ/সর্বশেষ ডাটা"
+                    tone="var(--hero-heading)"
+                />
+
+                <PriceColumn
+                    label="পরের আপডেটে সম্ভাব্য দাম"
+                    value={bnTk(result.predicted_tomorrow, 2)}
+                    sub={
+                        result.predicted_low != null
+                            ? `${bnTk(result.predicted_low, 2)} - ${bnTk(result.predicted_high, 2)}`
+                            : "সম্ভাব্য সীমা নেই"
+                    }
+                    tone="var(--hero-price)"
+                />
+
+                <PriceColumn
+                    label="সম্ভাব্য পরিবর্তন"
+                    value={`${changePct > 0 ? "+" : ""}${bnPct(changePct, 2)}`}
+                    sub={changePct < 0 ? "দাম কমতে পারে" : changePct > 0 ? "দাম বাড়তে পারে" : "প্রায় একই"}
+                    tone={changeColor}
+                />
+
+                <PriceColumn
+                    label="সাশ্রয়ের ধারণা"
+                    value={
+                        savings.buyTodaySaving > 0
+                            ? bnTk(savings.buyTodaySaving, 2)
+                            : savings.waitSaving > 0
+                                ? bnTk(savings.waitSaving, 2)
+                                : "৳০"
+                    }
+                    sub={
+                        savings.buyTodaySaving > 0
+                            ? "আজ কিনলে সাশ্রয়"
+                            : savings.waitSaving > 0
+                                ? "অপেক্ষা করলে সাশ্রয়"
+                                : "বড় সাশ্রয় নেই"
+                    }
+                    tone="var(--hero-price)"
+                />
+            </div>
+
+            <div style={{ padding: "16px 22px" }}>
+                <div
+                    style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(4, 1fr)",
+                        gap: 12,
+                    }}
+                >
+                    <SmallMetric
+                        label="মডেলের ভরসা"
+                        value={
+                            confidence
+                                ? `${"★".repeat(confidence.stars)}${"☆".repeat(5 - confidence.stars)}`
+                                : "ডাটা কম"
+                        }
+                        sub={confidence ? `${bnNum(confidence.confidencePct)}%` : ""}
+                    />
+
+                    <SmallMetric
+                        label="ঝুঁকি মাত্রা"
+                        value={risk?.label || "ডাটা কম"}
+                        sub="দামের ওঠানামা দেখে"
+                    />
+
+                    <SmallMetric
+                        label="এখন কিনলে কী হবে?"
+                        value={
+                            savings.buyTodaySaving > 0
+                                ? `সাশ্রয় ${bnTk(savings.buyTodaySaving, 2)}`
+                                : "আলাদা লাভ নেই"
+                        }
+                        sub="পরের আপডেটের তুলনায়"
+                    />
+
+                    <SmallMetric
+                        label="২ দিন অপেক্ষা করলে"
+                        value={
+                            savings.waitSaving > 0
+                                ? `সাশ্রয় ${bnTk(savings.waitSaving, 2)}`
+                                : "সাশ্রয় কম"
+                        }
+                        sub="ধারণা করা দাম দেখে"
+                    />
+                </div>
+            </div>
+        </section>
+    );
+}
+
+function PriceColumn({ label, value, sub, tone }) {
+    return (
+        <div
+            style={{
+                padding: "18px 20px",
+                borderRight: "1px solid var(--hero-border)",
+                minHeight: 96,
+            }}
+        >
+            <div
+                style={{
+                    fontSize: 11,
+                    color: "var(--hero-text-light)",
+                    fontWeight: 900,
+                    marginBottom: 7,
+                }}
+            >
+                {label}
+            </div>
+
+            <div
+                style={{
+                    fontFamily: "var(--font-display)",
+                    fontSize: 25,
+                    fontWeight: 950,
+                    color: tone,
+                    letterSpacing: "-0.5px",
+                }}
+            >
+                {value}
+            </div>
+
+            {sub && (
+                <div style={{ marginTop: 4, fontSize: 11.5, color: "var(--hero-text-light)" }}>
+                    {sub}
+                </div>
+            )}
         </div>
     );
 }
 
-function ForecastSignals({ result }) {
-    if (!result) return null;
-
-    const rain =
-        typeof result.rainfall_mm === "number"
-            ? `${result.rainfall_mm} মিমি বৃষ্টি`
-            : "বৃষ্টির ডাটা নেই";
-
-    const temp =
-        typeof result.temp_avg_c === "number"
-            ? `${result.temp_avg_c}°C গড় তাপমাত্রা`
-            : "তাপমাত্রার ডাটা নেই";
-
-    const calendar = result.is_festival
-        ? "উৎসব/ছুটির প্রভাব ধরা হয়েছে"
-        : result.is_weekend
-            ? "সপ্তাহান্তের প্রভাব ধরা হয়েছে"
-            : "উৎসব/সপ্তাহান্তের আলাদা প্রভাব নেই";
-
+function SmallMetric({ label, value, sub }) {
     return (
         <div
             style={{
-                display: "flex",
-                gap: 8,
-                flexWrap: "wrap",
-                marginTop: 12,
+                background: "var(--hero-bg-soft)",
+                border: "1px solid var(--hero-border)",
+                borderRadius: 16,
+                padding: "13px 14px",
             }}
         >
-            <SignalChip icon="🌧️" text={rain} />
-            <SignalChip icon="🌡️" text={temp} />
-            <SignalChip icon="📅" text={calendar} />
+            <div
+                style={{
+                    fontSize: 11,
+                    color: "var(--hero-text-light)",
+                    fontWeight: 800,
+                    marginBottom: 7,
+                }}
+            >
+                {label}
+            </div>
+
+            <div style={{ fontSize: 14, fontWeight: 950, color: "var(--hero-heading)" }}>
+                {value}
+            </div>
+
+            {sub && (
+                <div style={{ marginTop: 4, fontSize: 11.5, color: "var(--hero-text-light)" }}>
+                    {sub}
+                </div>
+            )}
         </div>
     );
+}
+
+function AIReasonCard({ result }) {
+    const explanation =
+        translateApiText(result.explanation) ||
+        translateApiText(result.reason) ||
+        "সাম্প্রতিক দাম, বাজারের ধরণ, আবহাওয়া ও ছুটির তথ্য মিলিয়ে এই পরামর্শ দেওয়া হয়েছে।";
+
+    return (
+        <section
+            style={{
+                padding: "20px 22px",
+                borderRadius: 22,
+                background: "linear-gradient(180deg, var(--hero-bg-soft) 0%, var(--hero-card) 100%)",
+                border: "1px solid var(--hero-border)",
+                boxShadow: "0 14px 34px rgba(47, 93, 40, 0.06)",
+            }}
+        >
+            <div
+                style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    fontWeight: 950,
+                    color: "var(--hero-heading)",
+                    marginBottom: 12,
+                    fontSize: 16,
+                }}
+            >
+                AI কেন এই পরামর্শ দিচ্ছে?
+            </div>
+
+            <div
+                style={{
+                    background: "rgba(255,255,255,0.7)",
+                    border: "1px solid var(--hero-border)",
+                    borderRadius: 16,
+                    padding: "14px 16px",
+                    fontSize: 14,
+                    lineHeight: 1.85,
+                    color: "var(--hero-text)",
+                    whiteSpace: "pre-line",
+                }}
+            >
+                {explanation}
+            </div>
+
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
+                <SignalChip icon="🌧️" text={getRainText(result)} />
+                <SignalChip icon="🌡️" text={getTempText(result)} />
+                <SignalChip icon="📅" text={getCalendarText(result)} />
+            </div>
+
+            {result.top_factors?.length > 0 && (
+                <div style={{ marginTop: 14 }}>
+                    <WhyFactors factors={result.top_factors} />
+                </div>
+            )}
+        </section>
+    );
+}
+
+function getRainText(result) {
+    if (typeof result.rainfall_mm === "number") {
+        return `${bnNum(result.rainfall_mm, 1)} মিমি বৃষ্টি`;
+    }
+
+    return "বৃষ্টির ডাটা নেই";
+}
+
+function getTempText(result) {
+    if (typeof result.temp_avg_c === "number") {
+        return `${bnNum(result.temp_avg_c, 1)}°C গড় তাপমাত্রা`;
+    }
+
+    return "তাপমাত্রার ডাটা নেই";
+}
+
+function getCalendarText(result) {
+    if (result.is_festival) return "ছুটির প্রভাব থাকতে পারে";
+    if (result.is_weekend) return "সপ্তাহান্তের প্রভাব থাকতে পারে";
+    return "ছুটি/সপ্তাহান্তের বড় প্রভাব নেই";
 }
 
 function SignalChip({ icon, text }) {
     return (
         <span
-            className="category-chip"
             style={{
-                padding: "7px 11px",
-                boxShadow: "none",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 7,
+                padding: "7px 12px",
+                borderRadius: 999,
+                border: "1px solid var(--hero-border)",
+                background: "rgba(255,255,255,0.75)",
+                color: "var(--hero-text)",
+                fontSize: 12.5,
+                fontWeight: 800,
             }}
         >
             <span>{icon}</span>
             {text}
         </span>
+    );
+}
+
+function FuturePriceCard({ week, currentAvg }) {
+    const trend = computeTrend(week);
+
+    return (
+        <section
+            style={{
+                borderRadius: 22,
+                padding: "20px 22px",
+                background: "linear-gradient(135deg, var(--hero-bg-soft) 0%, var(--hero-card) 70%, var(--hero-success-bg) 100%)",
+                border: "1px solid var(--hero-border)",
+                boxShadow: "0 14px 34px rgba(47, 93, 40, 0.08)",
+                overflow: "hidden",
+                position: "relative",
+            }}
+        >
+            <div
+                style={{
+                    position: "absolute",
+                    right: 10,
+                    bottom: -18,
+                    fontSize: 94,
+                    opacity: 0.12,
+                }}
+            >
+                📈
+            </div>
+
+            <div style={{ position: "relative", zIndex: 1 }}>
+                <h3
+                    style={{
+                        margin: "0 0 14px",
+                        fontSize: 17,
+                        fontWeight: 950,
+                        color: "var(--hero-heading)",
+                    }}
+                >
+                    দামের আগাম ধারণা
+                </h3>
+
+                <div
+                    style={{
+                        display: "flex",
+                        gap: 0,
+                        overflowX: "auto",
+                        paddingBottom: 4,
+                    }}
+                >
+                    <FutureStep label="এখনকার দাম" price={currentAvg} />
+
+                    {week.slice(0, 7).map((item, index) => (
+                        <FutureStep
+                            key={item.day || index}
+                            label={item.day === 1 ? "পরের আপডেট" : `${bnNum(item.day)} দিন পরে`}
+                            price={item.predicted_price}
+                            tone={getChangeColor(safeNumber(item.change_pct))}
+                            festival={item.is_festival}
+                        />
+                    ))}
+                </div>
+
+                <p
+                    style={{
+                        margin: "14px 0 0",
+                        fontSize: 13,
+                        color: "var(--hero-heading)",
+                        lineHeight: 1.7,
+                        fontWeight: 700,
+                    }}
+                >
+                    {trend?.direction === "falling" &&
+                        "সামনের আপডেটে দাম কিছুটা কমতে পারে। জরুরি না হলে একটু অপেক্ষা করলে লাভ হতে পারে।"}
+                    {trend?.direction === "rising" &&
+                        "সামনের আপডেটে দাম বাড়তে পারে। দরকার হলে আজ কিনে নেওয়া ভালো।"}
+                    {(!trend || trend.direction === "stable") &&
+                        "সামনের আপডেটে দাম খুব বেশি বদলানোর সম্ভাবনা কম।"}
+                </p>
+            </div>
+        </section>
+    );
+}
+
+function FutureStep({ label, price, tone = "var(--hero-heading)", festival }) {
+    return (
+        <div
+            style={{
+                minWidth: 150,
+                padding: "0 20px",
+                borderLeft: "1px dashed var(--hero-border)",
+            }}
+        >
+            <div
+                style={{
+                    fontSize: 11,
+                    color: "var(--hero-text-light)",
+                    marginBottom: 6,
+                    fontWeight: 800,
+                }}
+            >
+                {label} {festival ? "🎉" : ""}
+            </div>
+
+            <div
+                style={{
+                    fontFamily: "var(--font-display)",
+                    fontWeight: 950,
+                    fontSize: 22,
+                    color: tone,
+                    letterSpacing: "-0.4px",
+                }}
+            >
+                {bnTk(price, 2)}
+            </div>
+        </div>
     );
 }

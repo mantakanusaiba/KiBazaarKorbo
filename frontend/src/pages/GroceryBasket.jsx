@@ -9,12 +9,12 @@ import {
     PRODUCT_CATEGORIES,
     formatProductName,
     formatUnit,
-    getCategoryMeta,
     getProductCategory,
     getProductImage,
     productMatchesSearch,
     translateApiText,
 } from "../utils/productAssets";
+import { bnNum, bnTk } from "../utils/banglaFormat";
 
 const STORAGE_KEY = "mm_basket";
 const DIVISION_STORAGE_KEY = "mm_basket_division";
@@ -120,7 +120,7 @@ export default function GroceryBasket() {
                 setProducts(prodRes.data || []);
                 setPriceRows(priceRes.data || []);
             })
-            .catch(() => setError("দামের ডাটা লোড করা যায়নি। সার্ভার চালু আছে কি না দেখুন।"))
+            .catch(() => setError("দামের ডাটা লোড করা যায়নি। সার্ভার চালু আছে কি না দেখুন।"))
             .finally(() => setLoading(false));
     }, []);
 
@@ -241,7 +241,7 @@ export default function GroceryBasket() {
 
         optimizeBasket(payload, marketsForDivision)
             .then((res) => setPlan(res.data))
-            .catch(() => setPlanError("সেরা বাজার প্ল্যান বের করা যায়নি। আবার চেষ্টা করুন।"))
+            .catch(() => setPlanError("সেরা বাজার প্ল্যান বের করা যায়নি। আবার চেষ্টা করুন।"))
             .finally(() => setPlanLoading(false));
     };
 
@@ -265,6 +265,7 @@ export default function GroceryBasket() {
                             style={{
                                 height: 166,
                                 borderRadius: 20,
+
                             }}
                         />
                     ))}
@@ -286,7 +287,7 @@ export default function GroceryBasket() {
     return (
         <div className="page-enter">
             <section className="page-hero" style={{ marginBottom: 20 }}>
-                <div className="hero-kicker">🛒 স্মার্ট বাজার লিস্ট</div>
+
 
                 <h1 className="page-title">
                     বাজারের লিস্ট বানান, কম দামের বাজার থেকে কিনুন।
@@ -308,7 +309,7 @@ export default function GroceryBasket() {
                                     className="mm-input"
                                     value={query}
                                     onChange={(e) => setQuery(e.target.value)}
-                                    placeholder="যেমন: পেঁয়াজ, চাল, মাছ..."
+                                    placeholder="যেমন: পেঁয়াজ, চাল, মাছ..."
                                 />
                             </label>
 
@@ -341,7 +342,7 @@ export default function GroceryBasket() {
                                     <span>{c.icon}</span>
                                     {c.label}
                                     <span style={{ opacity: 0.72 }}>
-                                        ({categoryCounts[c.id] || 0})
+                                        ({bnNum(categoryCounts[c.id] || 0)})
                                     </span>
                                 </button>
                             ))}
@@ -353,21 +354,20 @@ export default function GroceryBasket() {
                             <h2 className="section-title">পণ্য যোগ করুন</h2>
 
                             <p className="section-note">
-                                দেখানো হচ্ছে {visibleProducts.length}টি পণ্য — {divisionId === "all" ? "সব বিভাগ" : `${selectedDivision?.name} বিভাগ`}.
+                                দেখানো হচ্ছে {bnNum(visibleProducts.length)}টি পণ্য — {divisionId === "all" ? "সব বিভাগ" : `${selectedDivision?.name} বিভাগ`}.
                             </p>
                         </div>
                     </div>
 
                     {visibleProducts.length === 0 ? (
                         <div className="empty-state">
-                            এই সিলেকশনে কোনো পণ্য পাওয়া যায়নি।
+                            এই সিলেকশনে কোনো পণ্য পাওয়া যায়নি।
                         </div>
                     ) : (
                         <div className="basket-product-grid">
                             {visibleProducts.map((key) => {
                                 const p = prices[key];
                                 const inBasket = basket[key] > 0;
-                                const meta = getCategoryMeta(p.category);
 
                                 return (
                                     <button
@@ -390,16 +390,12 @@ export default function GroceryBasket() {
                                         </div>
 
                                         <div className="mini-product-content">
-                                            <div className="mini-product-category">
-                                                {meta.icon} {meta.label}
-                                            </div>
-
                                             <div className="mini-product-name">
                                                 {formatProductName(key)}
                                             </div>
 
                                             <div className="mini-product-price">
-                                                ৳{p.avg} / {formatUnit(p.unit)}
+                                                {bnTk(p.avg, 2)} / {formatUnit(p.unit)}
                                             </div>
                                         </div>
                                     </button>
@@ -429,15 +425,15 @@ export default function GroceryBasket() {
 
                         {hiddenBasketCount > 0 && divisionId !== "all" && (
                             <div className="basket-warning">
-                                {hiddenBasketCount}টি সেভ করা পণ্য লুকানো আছে, কারণ এগুলো {selectedDivision?.name} বিভাগে পাওয়া যাচ্ছে না।
+                                {bnNum(hiddenBasketCount)}টি সেভ করা পণ্য লুকানো আছে, কারণ এগুলো {selectedDivision?.name} বিভাগে পাওয়া যাচ্ছে না।
                             </div>
                         )}
 
                         {items.length === 0 ? (
                             <div className="empty-state basket-empty">
                                 {hiddenBasketCount > 0
-                                    ? "এই বিভাগে আপনার লিস্টের পণ্য পাওয়া যাচ্ছে না।"
-                                    : "আপনার বাজার লিস্ট খালি। পণ্য চাপ দিয়ে যোগ করুন।"}
+                                    ? "এই বিভাগে আপনার লিস্টের পণ্য পাওয়া যাচ্ছে না।"
+                                    : "আপনার বাজার লিস্ট খালি। পণ্য চাপ দিয়ে যোগ করুন।"}
                             </div>
                         ) : (
                             <>
@@ -462,7 +458,7 @@ export default function GroceryBasket() {
                                                 </div>
 
                                                 <div className="basket-item-unit">
-                                                    ৳{item.unitPrice} / {formatUnit(item.unit)}
+                                                    {bnTk(item.unitPrice, 2)} / {formatUnit(item.unit)}
                                                 </div>
                                             </div>
 
@@ -480,7 +476,7 @@ export default function GroceryBasket() {
                                                 </button>
 
                                                 <span className="qty-text">
-                                                    {item.qty} {formatUnit(item.unit)}
+                                                    {bnNum(item.qty)} {formatUnit(item.unit)}
                                                 </span>
 
                                                 <button
@@ -497,7 +493,7 @@ export default function GroceryBasket() {
                                             </div>
 
                                             <div className="basket-line-total">
-                                                ৳{item.lineTotal.toFixed(2)}
+                                                {bnTk(item.lineTotal, 2)}
                                             </div>
 
                                             <button
@@ -513,10 +509,10 @@ export default function GroceryBasket() {
 
                                 <div className="basket-total-card">
                                     <span>
-                                        মোট ({items.length}টি পণ্য)
+                                        মোট ({bnNum(items.length)}টি পণ্য)
                                     </span>
 
-                                    <strong>৳{total.toFixed(2)}</strong>
+                                    <strong>{bnTk(total, 2)}</strong>
                                 </div>
                             </>
                         )}
@@ -540,8 +536,8 @@ export default function GroceryBasket() {
                             <div ref={resultRef} className="basket-plan-result">
                                 <div className="basket-result-heading">
                                     <div>
-                                        <h3>সবচেয়ে কম খরচের প্ল্যান</h3>
-                                        <p>ফলাফল এখানে দেখানো হয়েছে, তাই আবার সব পণ্যের নিচে যেতে হবে না।</p>
+                                        <h3>সবচেয়ে কম খরচের প্ল্যান</h3>
+                                        <p>ফলাফল এখানে দেখানো হয়েছে, তাই আবার সব পণ্যের নিচে যেতে হবে না।</p>
                                     </div>
                                 </div>
 
@@ -578,7 +574,7 @@ export default function GroceryBasket() {
 
                                 {plan.unresolved_products?.length > 0 && (
                                     <div className="basket-unresolved">
-                                        এই পণ্যের বাজার ডাটা নেই{divisionId !== "all" ? " এই বিভাগে" : ""}: 
+                                        এই পণ্যের বাজার ডাটা নেই{divisionId !== "all" ? " এই বিভাগে" : ""}:
                                         {plan.unresolved_products.map(formatProductName).join(", ")}
                                     </div>
                                 )}

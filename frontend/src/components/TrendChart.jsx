@@ -23,6 +23,42 @@ function formatDateLabel(value) {
     return toBnDigits(text);
 }
 
+function safeNumber(value) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : 0;
+}
+
+function normalizeChartData(data = []) {
+    return data.map((row) => {
+        const avg = safeNumber(
+            row.avg_price ??
+            row.average_price ??
+            row.price ??
+            row.current_price
+        );
+
+        const min = safeNumber(
+            row.min_price ??
+            row.minimum_price ??
+            row.low_price
+        ) || avg;
+
+        const max = safeNumber(
+            row.max_price ??
+            row.maximum_price ??
+            row.high_price
+        ) || avg;
+
+        return {
+            ...row,
+            date: row.date || row.Date || row.DATE || row.ds,
+            avg_price: avg,
+            min_price: min,
+            max_price: max,
+        };
+    });
+}
+
 const CustomTooltip = ({ active, payload, label }) => {
     if (!active || !payload?.length) return null;
 
@@ -76,21 +112,23 @@ export default function TrendChart({ data, hideDates = false }) {
         );
     }
 
+    const normalizedData = normalizeChartData(data);
+
     const chartData = hideDates
-        ? data.map((d, idx) => ({
-              ...d,
-              relativeLabel:
-                  idx === data.length - 1
-                      ? "সর্বশেষ"
-                      : `${bnNum(data.length - 1 - idx)} ধাপ আগে`,
-          }))
-        : data;
+        ? normalizedData.map((d, idx) => ({
+            ...d,
+            relativeLabel:
+                idx === normalizedData.length - 1
+                    ? "সর্বশেষ"
+                    : `${bnNum(normalizedData.length - 1 - idx)} ধাপ আগে`,
+        }))
+        : normalizedData;
 
     return (
-        <ResponsiveContainer width="100%" height={280}>
+        <ResponsiveContainer width="100%" height={300}>
             <LineChart
                 data={chartData}
-                margin={{ top: 8, right: 12, left: 4, bottom: 8 }}
+                margin={{ top: 10, right: 18, left: 4, bottom: 12 }}
             >
                 <CartesianGrid
                     strokeDasharray="3 3"
@@ -104,6 +142,7 @@ export default function TrendChart({ data, hideDates = false }) {
                     tickFormatter={(v) => (hideDates ? v : formatDateLabel(v))}
                     axisLine={false}
                     tickLine={false}
+                    interval="preserveStartEnd"
                 />
 
                 <YAxis
@@ -112,14 +151,16 @@ export default function TrendChart({ data, hideDates = false }) {
                     width={64}
                     axisLine={false}
                     tickLine={false}
+                    domain={["dataMin - 5", "dataMax + 5"]}
                 />
 
                 <Tooltip content={<CustomTooltip />} />
 
                 <Legend
+                    verticalAlign="bottom"
                     wrapperStyle={{
                         fontSize: 12,
-                        paddingTop: 8,
+                        paddingTop: 12,
                     }}
                 />
 
@@ -129,18 +170,19 @@ export default function TrendChart({ data, hideDates = false }) {
                     name="গড়"
                     stroke="var(--brand-600)"
                     dot={false}
-                    strokeWidth={2.5}
-                    activeDot={{ r: 4 }}
+                    strokeWidth={3}
+                    activeDot={{ r: 5 }}
                 />
 
                 <Line
                     type="monotone"
                     dataKey="min_price"
                     name="সর্বনিম্ন"
-                    stroke="var(--green-600)"
+                    stroke="#2563eb"
                     dot={false}
-                    strokeDasharray="4 3"
-                    strokeWidth={1.5}
+                    strokeDasharray="7 4"
+                    strokeWidth={2.4}
+                    activeDot={{ r: 5 }}
                 />
 
                 <Line
@@ -149,8 +191,9 @@ export default function TrendChart({ data, hideDates = false }) {
                     name="সর্বোচ্চ"
                     stroke="var(--red-600)"
                     dot={false}
-                    strokeDasharray="4 3"
-                    strokeWidth={1.5}
+                    strokeDasharray="7 4"
+                    strokeWidth={2.4}
+                    activeDot={{ r: 5 }}
                 />
             </LineChart>
         </ResponsiveContainer>

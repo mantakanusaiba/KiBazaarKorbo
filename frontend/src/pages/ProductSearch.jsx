@@ -76,7 +76,7 @@ export default function ProductSearch() {
                 }}
             >
                 <div>
-                    <div className="hero-kicker">🔎 পণ্যের দাম বিশ্লেষণ</div>
+
 
                     <h1 className="page-title">কেনার আগে আগের দাম দেখে নিন।</h1>
 
@@ -172,8 +172,8 @@ export default function ProductSearch() {
                                 pctChange > 0
                                     ? "var(--red-600)"
                                     : pctChange < 0
-                                      ? "var(--green-600)"
-                                      : "var(--gray-500)"
+                                        ? "var(--green-600)"
+                                        : "var(--gray-500)"
                             }
                         />
                     )}

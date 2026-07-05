@@ -2,13 +2,13 @@ import { useState } from "react";
 import { NavLink } from "react-router-dom";
 
 const LINKS = [
-    { to: "/", label: "হোম", icon: "🏪" },
-    { to: "/search", label: "পণ্য খুঁজুন", icon: "🔎" },
-    { to: "/forecast", label: "দাম ফোরকাস্ট", icon: "📈" },
-    { to: "/fair-price", label: "ঠিক দাম?", icon: "⚖️" },
-    { to: "/markets", label: "বাজার তুলনা", icon: "📍" },
-    { to: "/basket", label: "বাজার লিস্ট", icon: "🛒" },
-    { to: "/assistant", label: "AI সহকারী", icon: "🤖" },
+    { to: "/", label: "হোম" },
+    { to: "/search", label: "পণ্য খুঁজুন" },
+    { to: "/forecast", label: "দাম ফোরকাস্ট" },
+    { to: "/fair-price", label: "ঠিক দাম?" },
+    { to: "/markets", label: "বাজার তুলনা" },
+    { to: "/basket", label: "বাজার লিস্ট" },
+    { to: "/assistant", label: "AI সহকারী" },
 ];
 
 export default function Navbar() {
@@ -19,10 +19,10 @@ export default function Navbar() {
             position: "sticky",
             top: 0,
             zIndex: 100,
-            background: "rgba(244, 255, 248, 0.82)",
+            background: "rgba(245, 250, 239, 0.86)",
             backdropFilter: "blur(22px)",
-            borderBottom: "1px solid rgba(148, 163, 184, 0.18)",
-            boxShadow: "0 10px 30px rgba(5, 46, 37, 0.08)",
+            borderBottom: "1px solid var(--lemon-border)",
+            boxShadow: "0 10px 30px rgba(47, 93, 40, 0.08)",
         }}>
             <div style={{
                 maxWidth: 1220,
@@ -40,10 +40,10 @@ export default function Navbar() {
                         borderRadius: 16,
                         display: "grid",
                         placeItems: "center",
-                        background: "linear-gradient(135deg, #047857, #10b981)",
+                        background: "linear-gradient(135deg, var(--hero-heading), var(--hero-primary))",
                         color: "white",
                         fontSize: 21,
-                        boxShadow: "0 14px 30px rgba(5, 150, 105, 0.28)",
+                        boxShadow: "0 14px 30px rgba(109, 182, 76, 0.28)",
                     }}>
                         🧺
                     </div>
@@ -51,9 +51,9 @@ export default function Navbar() {
                         <div style={{
                             fontFamily: "var(--font-display)",
                             fontWeight: 950,
-                            color: "var(--brand-900)",
+                            color: "var(--hero-heading)",
                             letterSpacing: "-0.6px",
-                            fontSize: 19,
+                            fontSize: 20,
                         }}>
                             কি বাজার করবো?
                         </div>
@@ -80,10 +80,10 @@ export default function Navbar() {
                                 alignItems: "center",
                                 gap: 6,
                                 color: isActive ? "white" : "var(--gray-600)",
-                                background: isActive ? "linear-gradient(135deg, #047857, #10b981)" : "transparent",
-                                boxShadow: isActive ? "0 12px 24px rgba(5,150,105,0.20)" : "none",
+                                background: isActive ? "linear-gradient(135deg, var(--hero-heading), var(--hero-primary))" : "transparent",
+                                boxShadow: isActive ? "0 12px 24px rgba(109, 182, 76, 0.20)" : "none",
                                 fontWeight: 850,
-                                fontSize: 13,
+                                fontSize: 15,
                                 padding: "9px 11px",
                                 borderRadius: 999,
                                 transition: "all 0.16s ease",
@@ -105,9 +105,9 @@ export default function Navbar() {
                         width: 42,
                         height: 42,
                         borderRadius: 14,
-                        border: "1px solid var(--brand-100)",
+                        border: "1px solid var(--lemon-border)",
                         background: "white",
-                        color: "var(--brand-800)",
+                        color: "var(--hero-heading)",
                         fontSize: 20,
                         display: "none",
                         alignItems: "center",
@@ -134,7 +134,7 @@ export default function Navbar() {
                                     padding: "12px 13px",
                                     borderRadius: 14,
                                     color: isActive ? "white" : "var(--gray-700)",
-                                    background: isActive ? "linear-gradient(135deg, #047857, #10b981)" : "transparent",
+                                    background: isActive ? "linear-gradient(135deg, var(--hero-heading), var(--hero-primary))" : "transparent",
                                     fontWeight: 850,
                                 })}
                             >

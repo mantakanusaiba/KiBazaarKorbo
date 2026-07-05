@@ -22,19 +22,7 @@ function StatCard({ label, value, icon, tone = "var(--brand-700)" }) {
                     <div className="stat-value" style={{ color: tone }}>{value}</div>
                 </div>
 
-                <div
-                    style={{
-                        width: 44,
-                        height: 44,
-                        borderRadius: 16,
-                        display: "grid",
-                        placeItems: "center",
-                        background: "var(--brand-50)",
-                        fontSize: 21,
-                    }}
-                >
-                    {icon}
-                </div>
+
             </div>
         </div>
     );
@@ -66,30 +54,103 @@ function priceValue(item) {
     return Number(item?.avg_price || item?.max_price || item?.min_price || 0);
 }
 
-function PriceHighlightCard({ title, icon, item, tone }) {
+const UNIT_LABELS_BN = {
+    kg: "কেজি",
+    kgs: "কেজি",
+    gram: "গ্রাম",
+    g: "গ্রাম",
+    liter: "লিটার",
+    litre: "লিটার",
+    L: "লিটার",
+    L: "লিটার",
+    dozen: "ডজন",
+    piece: "পিস",
+    pcs: "পিস",
+    pc: "পিস",
+};
+
+function formatUnit(unit) {
+    if (!unit) return "কেজি";
+
+    const key = String(unit).trim().toLowerCase();
+    return UNIT_LABELS_BN[key] || unit;
+}
+
+// Simple trend proxy computed from existing min/max/avg fields.
+// (Swap this out once /prices/today returns real forecast/trend data.)
+function computeTrend(item) {
+    const min = Number(item.min_price) || 0;
+    const max = Number(item.max_price) || 0;
+    const avg = Number(item.avg_price) || 0;
+    const mid = (min + max) / 2;
+    const diff = avg - mid;
+
+    if (!mid || Math.abs(diff) < mid * 0.03) {
+        return { type: "stable", diff: 0 };
+    }
+
+    return { type: diff > 0 ? "up" : "down", diff: Math.abs(diff) };
+}
+
+function HeroProductCard({ item }) {
     if (!item) return null;
+
+    const trend = computeTrend(item);
+    const percent = item.avg_price ? Math.round((trend.diff / item.avg_price) * 100) : 0;
+
+    const trendMeta = {
+        up: {
+            icon: "⬆",
+            color: "#b91c1c",
+            background: "#fee2e2",
+            text: `গতকালের তুলনায় ${percent}% বেশি`,
+            tip: "💡 একটু অপেক্ষা করে কেনা ভালো",
+        },
+        down: {
+            icon: "⬇",
+            color: "var(--hero-success)",
+            background: "var(--hero-success-bg)",
+            text: `গতকালের তুলনায় ${percent}% কম`,
+            tip: "💡 এখন কিনলে ভালো সময়",
+        },
+        stable: {
+            icon: "➡",
+            color: "var(--hero-text)",
+            background: "var(--hero-bg-soft)",
+            text: "দাম স্থিতিশীল",
+            tip: "💡 যেকোনো সময় কিনতে পারেন",
+        },
+    }[trend.type];
 
     return (
         <div
+            key={item.standard_key}
             style={{
                 display: "grid",
-                gridTemplateColumns: "112px 1fr",
-                gap: 14,
+                gridTemplateColumns: "150px 1fr",
+                gap: 18,
                 alignItems: "center",
-                padding: 12,
-                borderRadius: 24,
-                background: "rgba(255,255,255,0.18)",
-                border: "1px solid rgba(255,255,255,0.18)",
+                padding: 18,
+                borderRadius: 26,
+                background: "var(--hero-card)",
+                border: "1px solid var(--hero-border)",
+                boxShadow: "0 12px 30px rgba(47, 93, 40, 0.08)",
+                animation: "fadeSlide .35s ease",
+                height: 260,
+                boxSizing: "border-box",
+                overflow: "hidden",
             }}
         >
             <div
                 style={{
-                    height: 104,
-                    borderRadius: 20,
+                    width: 150,
+                    height: 150,
+                    borderRadius: 18,
                     overflow: "hidden",
-                    background: "rgba(255,255,255,0.22)",
+                    background: "var(--hero-bg-soft)",
                     display: "grid",
                     placeItems: "center",
+                    flexShrink: 0,
                 }}
             >
                 <img
@@ -99,74 +160,87 @@ function PriceHighlightCard({ title, icon, item, tone }) {
                         width: "100%",
                         height: "100%",
                         objectFit: "contain",
-                        padding: 10,
-                        filter: "drop-shadow(0 16px 18px rgba(0,0,0,0.2))",
+                        padding: 12,
                     }}
                 />
             </div>
 
-            <div>
-                <div
+            <div style={{ minWidth: 0, height: "100%", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                <h2
                     style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 6,
-                        padding: "5px 10px",
-                        borderRadius: 999,
-                        background: "rgba(255,255,255,0.16)",
-                        color: "rgba(255,255,255,0.9)",
-                        fontSize: 11,
-                        fontWeight: 900,
-                        textTransform: "uppercase",
-                        letterSpacing: 0.45,
-                        marginBottom: 8,
-                    }}
-                >
-                    {icon} {title}
-                </div>
-
-                <div
-                    style={{
-                        color: "white",
-                        fontWeight: 950,
-                        fontSize: 18,
-                        lineHeight: 1.15,
+                        color: "var(--hero-heading)",
+                        marginTop: 0,
                         marginBottom: 6,
+                        fontWeight: 900,
+                        fontSize: 26,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
                     }}
                 >
                     {item.product}
+                </h2>
+
+                <div
+                    style={{
+                        color: "var(--hero-text-light)",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        marginBottom: 2,
+                    }}
+                >
+                    আজকের দাম
                 </div>
 
                 <div
                     style={{
-                        color: tone,
-                        fontWeight: 950,
-                        fontSize: 28,
-                        letterSpacing: -0.7,
+                        color: "var(--hero-price)",
+                        fontWeight: 900,
+                        fontSize: 36,
+                        lineHeight: 1.1,
                     }}
                 >
-                    {bnTk(priceValue(item), 0)}
+                    {bnTk(item.avg_price, 0)}
                     <span
                         style={{
-                            color: "rgba(255,255,255,0.72)",
-                            fontSize: 12,
-                            marginLeft: 5,
-                            fontWeight: 800,
+                            fontSize: 14,
+                            color: "var(--hero-text-light)",
+                            fontWeight: 700,
+                            marginLeft: 8,
                         }}
                     >
-                        গড়
+                        /{formatUnit(item.unit)}
                     </span>
                 </div>
 
                 <div
                     style={{
-                        color: "rgba(255,255,255,0.72)",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        marginTop: 8,
+                        padding: "4px 10px",
+                        borderRadius: 999,
+                        background: trendMeta.background,
+                        color: trendMeta.color,
+                        fontWeight: 800,
                         fontSize: 12,
-                        fontWeight: 700,
-                        marginTop: 4,
+                        width: "fit-content",
                     }}
                 >
-                    দামের সীমা: {bnTk(item.min_price || 0, 0)} - {bnTk(item.max_price || 0, 0)}
+                    <span>{trendMeta.icon}</span>
+                    <span>{trendMeta.text}</span>
+                </div>
+
+                <div
+                    style={{
+                        color: "var(--hero-text-light)",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        marginTop: 6,
+                    }}
+                >
+                    রেঞ্জ: {bnTk(item.min_price, 0)} – {bnTk(item.max_price, 0)}
                 </div>
             </div>
         </div>
@@ -181,13 +255,14 @@ export default function Dashboard() {
     const [marketKey, setMarketKey] = useState("all");
     const [query, setQuery] = useState("");
     const [categoryId, setCategoryId] = useState("all");
+    const [currentSlide, setCurrentSlide] = useState(0);
 
     const navigate = useNavigate();
 
     useEffect(() => {
         getPricesToday()
             .then((r) => setPrices(r.data || []))
-            .catch(() => setError("দামের ডাটা লোড করা যায়নি। সার্ভার চালু আছে কি না দেখুন।"))
+            .catch(() => setError("দামের ডাটা লোড করা যায়নি। সার্ভার চালু আছে কি না দেখুন।"))
             .finally(() => setLoading(false));
     }, []);
 
@@ -257,23 +332,31 @@ export default function Dashboard() {
         }));
     }, [prices, marketKey, divisionMarketKeys]);
 
-    const priceHighlights = useMemo(() => {
-        const validItems = aggregatedItems.filter((item) => priceValue(item) > 0);
-
-        if (validItems.length === 0) {
-            return {
-                highest: null,
-                lowest: null,
-            };
-        }
-
-        const sorted = [...validItems].sort((a, b) => priceValue(b) - priceValue(a));
-
-        return {
-            highest: sorted[0],
-            lowest: sorted[sorted.length - 1],
-        };
+    // Products cycled through the hero spotlight carousel
+    const heroSlides = useMemo(() => {
+        return aggregatedItems
+            .filter((item) => priceValue(item) > 0)
+            .sort((a, b) => priceValue(b) - priceValue(a))
+            .slice(0, 8);
     }, [aggregatedItems]);
+
+    // Keep currentSlide in range whenever the slide list changes
+    useEffect(() => {
+        if (currentSlide >= heroSlides.length) {
+            setCurrentSlide(0);
+        }
+    }, [heroSlides, currentSlide]);
+
+    // Auto-advance every 1.5 seconds
+    useEffect(() => {
+        if (heroSlides.length <= 1) return;
+
+        const timer = setInterval(() => {
+            setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
+        }, 1500);
+
+        return () => clearInterval(timer);
+    }, [heroSlides]);
 
     const items = useMemo(() => {
         return aggregatedItems
@@ -335,6 +418,7 @@ export default function Dashboard() {
 
     return (
         <div className="page-enter">
+
             <section
                 className="page-hero"
                 style={{
@@ -343,9 +427,10 @@ export default function Dashboard() {
                     gap: 26,
                     alignItems: "center",
                 }}
+
             >
                 <div>
-                    <div className="hero-kicker">🌿 আজকের বাজারের স্মার্ট তথ্য</div>
+
 
                     <h1 className="page-title">বাংলাদেশের বাজার দাম দেখে স্মার্টভাবে কেনাকাটা করুন।</h1>
 
@@ -355,49 +440,37 @@ export default function Dashboard() {
 
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 22 }}>
                         <button className="mm-btn" onClick={() => navigate("/basket")}>
-                            🛒 বাজার লিস্ট বানান
+                            বাজার লিস্ট বানান
                         </button>
 
                         <button className="mm-btn secondary" onClick={() => navigate("/forecast")}>
-                            📈 দাম ফোরকাস্ট দেখুন
+                            দাম ফোরকাস্ট দেখুন
                         </button>
                     </div>
                 </div>
 
                 <div
-                    className="glass-card"
                     style={{
-                        padding: 16,
-                        background: "rgba(255,255,255,0.16)",
-                        borderColor: "rgba(255,255,255,0.20)",
+                        padding: 20,
+                        borderRadius: 30,
+                        background: "var(--hero-bg-soft)",
+                        border: "1px solid var(--hero-border)",
+                        position: "relative",
                     }}
                 >
                     <div
                         style={{
-                            color: "white",
-                            fontWeight: 950,
-                            fontSize: 18,
-                            marginBottom: 12,
-                            letterSpacing: -0.3,
+                            color: "var(--hero-heading)",
+                            fontWeight: 900,
+                            fontSize: 20,
+                            marginBottom: 15,
                         }}
                     >
-                        আজকের সবচেয়ে বেশি ও কম দাম
+                        আজকের বাজারের বিশেষ দাম
                     </div>
 
-                    <div style={{ display: "grid", gap: 12 }}>
-                        <PriceHighlightCard
-                            title="আজ সবচেয়ে বেশি দাম"
-                            icon="📈"
-                            item={priceHighlights.highest}
-                            tone="#fde68a"
-                        />
-
-                        <PriceHighlightCard
-                            title="আজ সবচেয়ে কম দাম"
-                            icon="📉"
-                            item={priceHighlights.lowest}
-                            tone="#bbf7d0"
-                        />
+                    <div style={{ position: "relative" }}>
+                        <HeroProductCard item={heroSlides[currentSlide]} />
                     </div>
                 </div>
             </section>
@@ -420,7 +493,7 @@ export default function Dashboard() {
                         className="mm-input"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
-                        placeholder="যেমন: চাল, ডিম, পেঁয়াজ, মুরগি..."
+                        placeholder="যেমন: চাল, ডিম, পেঁয়াজ, মুরগি..."
                     />
                 </label>
 
@@ -454,7 +527,7 @@ export default function Dashboard() {
 
             <div className="section-head">
                 <div>
-                    <h2 className="section-title">ক্যাটাগরি দিয়ে দেখুন</h2>
+                    <h2 className="section-title">ক্যাটাগরি দিয়ে দেখুন</h2>
                     <p className="section-note">
                         পণ্য খোঁজা, বিভাগ ও বাজার ফিল্টারের সাথে এই ক্যাটাগরি ফিল্টার একসাথে কাজ করবে।
                     </p>
@@ -492,7 +565,7 @@ export default function Dashboard() {
 
             {items.length === 0 ? (
                 <div className="empty-state">
-                    এই খোঁজা/ফিল্টারে কোনো পণ্য পাওয়া যায়নি। অন্য ক্যাটাগরি বা বাজার দিয়ে চেষ্টা করুন।
+                    এই খোঁজা/ফিল্টারে কোনো পণ্য পাওয়া যায়নি। অন্য ক্যাটাগরি বা বাজার দিয়ে চেষ্টা করুন।
                 </div>
             ) : (
                 <div className="product-grid">
