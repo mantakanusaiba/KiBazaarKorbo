@@ -151,18 +151,6 @@ export default function FairPriceChecker() {
                             </span>
 
                             <div style={{ position: "relative" }}>
-                                <span
-                                    style={{
-                                        position: "absolute",
-                                        left: 14,
-                                        top: "50%",
-                                        transform: "translateY(-50%)",
-                                        fontSize: 18,
-                                        pointerEvents: "none",
-                                    }}
-                                >
-                                    💵
-                                </span>
 
                                 <input
                                     className="mm-input"

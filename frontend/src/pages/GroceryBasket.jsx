@@ -527,7 +527,7 @@ export default function GroceryBasket() {
                                 ? "হিসাব হচ্ছে…"
                                 : items.length === 0
                                     ? "আগে পণ্য যোগ করুন"
-                                    : "🧮 কম খরচে কীভাবে কিনবেন"}
+                                    : "কম খরচে কীভাবে কিনবেন"}
                         </button>
 
                         {planError && <p className="basket-plan-error">{planError}</p>}

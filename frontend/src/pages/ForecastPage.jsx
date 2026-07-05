@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { getExplanation, getForecast } from "../api/client";
 import ProductSelector from "../components/ProductSelector";
-import WhyFactors from "../components/WhyFactors";
 import { marketLabel } from "../data/marketRegions";
 import useSessionState from "../hooks/useSessionState";
 import {
@@ -149,8 +148,8 @@ export default function ForecastPage() {
                     padding: 16,
                     marginBottom: 18,
                     borderRadius: 22,
-                    background: "var(--hero-card)",
-                    border: "1px solid var(--hero-border)",
+                    background: "#ffffff",
+                    border: "1px solid var(--lemon-border)",
                     boxShadow: "0 12px 30px rgba(47, 93, 40, 0.06)",
                 }}
             >
@@ -227,7 +226,6 @@ function ForecastHero({ selected }) {
             />
 
             <div style={{ position: "relative", zIndex: 1 }}>
-
 
                 <h1
                     style={{
@@ -321,8 +319,8 @@ function MainForecastCard({ selected, result, week }) {
                 padding: 0,
                 borderRadius: 24,
                 overflow: "hidden",
-                background: "var(--hero-card)",
-                border: "1px solid var(--hero-border)",
+                background: "#ffffff",
+                border: "1px solid var(--lemon-border)",
                 boxShadow: "0 18px 45px rgba(47, 93, 40, 0.07)",
             }}
         >
@@ -341,7 +339,7 @@ function MainForecastCard({ selected, result, week }) {
                             <h2
                                 style={{
                                     margin: 0,
-                                    fontSize: 22,
+                                    fontSize: 26,
                                     fontFamily: "var(--font-display)",
                                     color: "var(--hero-heading)",
                                     letterSpacing: "-0.3px",
@@ -349,24 +347,8 @@ function MainForecastCard({ selected, result, week }) {
                             >
                                 {formatProductName(selected)}
                             </h2>
-
-                            <p style={{ margin: "3px 0 0", fontSize: 12, color: "var(--hero-text-light)" }}>
-                                {marketLabel(result.market)}
-                            </p>
                         </div>
                     </div>
-
-                    <p
-                        style={{
-                            margin: "12px 0 16px",
-                            fontSize: 14,
-                            color: "var(--hero-text)",
-                            lineHeight: 1.7,
-                            fontWeight: 600,
-                        }}
-                    >
-                        {translateApiText(result.reason) || getTrendSentence(week)}
-                    </p>
                 </div>
 
                 <div
@@ -380,12 +362,12 @@ function MainForecastCard({ selected, result, week }) {
                         gap: 12,
                     }}
                 >
-                    <span style={{ fontSize: 24 }}>{advice.icon}</span>
+                    <span style={{ fontSize: 26 }}>{advice.icon}</span>
 
                     <div>
                         <div
                             style={{
-                                fontSize: 15,
+                                fontSize: 17,
                                 fontWeight: 950,
                                 color: advice.text,
                                 marginBottom: 4,
@@ -394,7 +376,7 @@ function MainForecastCard({ selected, result, week }) {
                             {advice.title}
                         </div>
 
-                        <div style={{ fontSize: 12.5, color: "var(--hero-text)", lineHeight: 1.6 }}>
+                        <div style={{ fontSize: 14, color: "var(--hero-text)", lineHeight: 1.6 }}>
                             {advice.short}
                         </div>
                     </div>
@@ -405,9 +387,9 @@ function MainForecastCard({ selected, result, week }) {
                 style={{
                     display: "grid",
                     gridTemplateColumns: "repeat(4, 1fr)",
-                    borderTop: "1px solid var(--hero-border)",
-                    borderBottom: "1px solid var(--hero-border)",
-                    background: "linear-gradient(180deg, #fff, var(--hero-bg-soft))",
+                    borderTop: "1px solid var(--lemon-border)",
+                    borderBottom: "1px solid var(--lemon-border)",
+                    background: "#ffffff",
                 }}
             >
                 <PriceColumn
@@ -509,13 +491,13 @@ function PriceColumn({ label, value, sub, tone }) {
         <div
             style={{
                 padding: "18px 20px",
-                borderRight: "1px solid var(--hero-border)",
+                borderRight: "1px solid var(--lemon-border)",
                 minHeight: 96,
             }}
         >
             <div
                 style={{
-                    fontSize: 11,
+                    fontSize: 13,
                     color: "var(--hero-text-light)",
                     fontWeight: 900,
                     marginBottom: 7,
@@ -527,7 +509,7 @@ function PriceColumn({ label, value, sub, tone }) {
             <div
                 style={{
                     fontFamily: "var(--font-display)",
-                    fontSize: 25,
+                    fontSize: 30,
                     fontWeight: 950,
                     color: tone,
                     letterSpacing: "-0.5px",
@@ -537,7 +519,7 @@ function PriceColumn({ label, value, sub, tone }) {
             </div>
 
             {sub && (
-                <div style={{ marginTop: 4, fontSize: 11.5, color: "var(--hero-text-light)" }}>
+                <div style={{ marginTop: 4, fontSize: 13, color: "var(--hero-text-light)" }}>
                     {sub}
                 </div>
             )}
@@ -549,15 +531,15 @@ function SmallMetric({ label, value, sub }) {
     return (
         <div
             style={{
-                background: "var(--hero-bg-soft)",
-                border: "1px solid var(--hero-border)",
+                background: "#ffffff",
+                border: "1px solid var(--lemon-border)",
                 borderRadius: 16,
                 padding: "13px 14px",
             }}
         >
             <div
                 style={{
-                    fontSize: 11,
+                    fontSize: 13,
                     color: "var(--hero-text-light)",
                     fontWeight: 800,
                     marginBottom: 7,
@@ -566,12 +548,12 @@ function SmallMetric({ label, value, sub }) {
                 {label}
             </div>
 
-            <div style={{ fontSize: 14, fontWeight: 950, color: "var(--hero-heading)" }}>
+            <div style={{ fontSize: 16, fontWeight: 950, color: "var(--hero-heading)" }}>
                 {value}
             </div>
 
             {sub && (
-                <div style={{ marginTop: 4, fontSize: 11.5, color: "var(--hero-text-light)" }}>
+                <div style={{ marginTop: 4, fontSize: 13, color: "var(--hero-text-light)" }}>
                     {sub}
                 </div>
             )}
@@ -585,13 +567,18 @@ function AIReasonCard({ result }) {
         translateApiText(result.reason) ||
         "সাম্প্রতিক দাম, বাজারের ধরণ, আবহাওয়া ও ছুটির তথ্য মিলিয়ে এই পরামর্শ দেওয়া হয়েছে।";
 
+    const points = explanation
+        .split(/।\s*/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+
     return (
         <section
             style={{
                 padding: "20px 22px",
                 borderRadius: 22,
-                background: "linear-gradient(180deg, var(--hero-bg-soft) 0%, var(--hero-card) 100%)",
-                border: "1px solid var(--hero-border)",
+                background: "#ffffff",
+                border: "1px solid var(--lemon-border)",
                 boxShadow: "0 14px 34px rgba(47, 93, 40, 0.06)",
             }}
         >
@@ -603,7 +590,7 @@ function AIReasonCard({ result }) {
                     fontWeight: 950,
                     color: "var(--hero-heading)",
                     marginBottom: 12,
-                    fontSize: 16,
+                    fontSize: 19,
                 }}
             >
                 AI কেন এই পরামর্শ দিচ্ছে?
@@ -611,75 +598,21 @@ function AIReasonCard({ result }) {
 
             <div
                 style={{
-                    background: "rgba(255,255,255,0.7)",
-                    border: "1px solid var(--hero-border)",
+                    background: "#ffffff",
+                    border: "1px solid var(--lemon-border)",
                     borderRadius: 16,
                     padding: "14px 16px",
-                    fontSize: 14,
-                    lineHeight: 1.85,
-                    color: "var(--hero-text)",
-                    whiteSpace: "pre-line",
                 }}
             >
-                {explanation}
+                <ul className="ai-summary-list">
+                    {points.map((point, index) => (
+                        <li key={index} style={{ fontSize: 16, lineHeight: 1.7, color: "var(--hero-text)" }}>
+                            {point}।
+                        </li>
+                    ))}
+                </ul>
             </div>
-
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
-                <SignalChip icon="🌧️" text={getRainText(result)} />
-                <SignalChip icon="🌡️" text={getTempText(result)} />
-                <SignalChip icon="📅" text={getCalendarText(result)} />
-            </div>
-
-            {result.top_factors?.length > 0 && (
-                <div style={{ marginTop: 14 }}>
-                    <WhyFactors factors={result.top_factors} />
-                </div>
-            )}
         </section>
-    );
-}
-
-function getRainText(result) {
-    if (typeof result.rainfall_mm === "number") {
-        return `${bnNum(result.rainfall_mm, 1)} মিমি বৃষ্টি`;
-    }
-
-    return "বৃষ্টির ডাটা নেই";
-}
-
-function getTempText(result) {
-    if (typeof result.temp_avg_c === "number") {
-        return `${bnNum(result.temp_avg_c, 1)}°C গড় তাপমাত্রা`;
-    }
-
-    return "তাপমাত্রার ডাটা নেই";
-}
-
-function getCalendarText(result) {
-    if (result.is_festival) return "ছুটির প্রভাব থাকতে পারে";
-    if (result.is_weekend) return "সপ্তাহান্তের প্রভাব থাকতে পারে";
-    return "ছুটি/সপ্তাহান্তের বড় প্রভাব নেই";
-}
-
-function SignalChip({ icon, text }) {
-    return (
-        <span
-            style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 7,
-                padding: "7px 12px",
-                borderRadius: 999,
-                border: "1px solid var(--hero-border)",
-                background: "rgba(255,255,255,0.75)",
-                color: "var(--hero-text)",
-                fontSize: 12.5,
-                fontWeight: 800,
-            }}
-        >
-            <span>{icon}</span>
-            {text}
-        </span>
     );
 }
 
@@ -691,8 +624,8 @@ function FuturePriceCard({ week, currentAvg }) {
             style={{
                 borderRadius: 22,
                 padding: "20px 22px",
-                background: "linear-gradient(135deg, var(--hero-bg-soft) 0%, var(--hero-card) 70%, var(--hero-success-bg) 100%)",
-                border: "1px solid var(--hero-border)",
+                background: "#ffffff",
+                border: "1px solid var(--lemon-border)",
                 boxShadow: "0 14px 34px rgba(47, 93, 40, 0.08)",
                 overflow: "hidden",
                 position: "relative",
@@ -714,7 +647,7 @@ function FuturePriceCard({ week, currentAvg }) {
                 <h3
                     style={{
                         margin: "0 0 14px",
-                        fontSize: 17,
+                        fontSize: 19,
                         fontWeight: 950,
                         color: "var(--hero-heading)",
                     }}
@@ -746,7 +679,7 @@ function FuturePriceCard({ week, currentAvg }) {
                 <p
                     style={{
                         margin: "14px 0 0",
-                        fontSize: 13,
+                        fontSize: 15,
                         color: "var(--hero-heading)",
                         lineHeight: 1.7,
                         fontWeight: 700,
@@ -770,12 +703,12 @@ function FutureStep({ label, price, tone = "var(--hero-heading)", festival }) {
             style={{
                 minWidth: 150,
                 padding: "0 20px",
-                borderLeft: "1px dashed var(--hero-border)",
+                borderLeft: "1px dashed var(--lemon-border)",
             }}
         >
             <div
                 style={{
-                    fontSize: 11,
+                    fontSize: 13,
                     color: "var(--hero-text-light)",
                     marginBottom: 6,
                     fontWeight: 800,
@@ -788,7 +721,7 @@ function FutureStep({ label, price, tone = "var(--hero-heading)", festival }) {
                 style={{
                     fontFamily: "var(--font-display)",
                     fontWeight: 950,
-                    fontSize: 22,
+                    fontSize: 24,
                     color: tone,
                     letterSpacing: "-0.4px",
                 }}
