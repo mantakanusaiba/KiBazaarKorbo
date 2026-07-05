@@ -1,182 +1,170 @@
-import { useEffect, useState } from "react";
-import { getProducts, getExplanation, getPriceHistory, getForecast } from "../api/client";
-import AdviceBadge from "../components/AdviceBadge";
+import { useState } from "react";
+import { getExplanation, getForecast } from "../api/client";
+import DecisionSummary from "../components/DecisionSummary";
 import ExplanationBox from "../components/ExplanationBox";
-import TrendChart from "../components/TrendChart";
-import ForecastBandChart from "../components/ForecastBandChart";
 import WhyFactors from "../components/WhyFactors";
+import ForecastTimeline from "../components/ForecastTimeline";
 import ProductSelector, { toLabel } from "../components/ProductSelector";
-
-const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+import { marketLabel } from "../data/marketRegions";
+import useSessionState from "../hooks/useSessionState";
+import {
+    getCategoryMeta,
+    getProductCategory,
+    getProductImage,
+    translateApiText,
+} from "../utils/productAssets";
 
 export default function ForecastPage() {
-    const [products, setProducts] = useState([]);
-    const [selected, setSelected] = useState("");
-    const [result, setResult] = useState(null);
-    const [week, setWeek] = useState([]);
-    const [history, setHistory] = useState([]);
+    const [selected, setSelected] = useSessionState("forecast_selected_product", "");
+    const [result, setResult] = useSessionState("forecast_result", null);
+    const [week, setWeek] = useSessionState("forecast_week_result", []);
+
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    useEffect(() => {
-        getProducts().then(r => {
-            setProducts(r.data);
-            if (r.data.length) setSelected(r.data[0]);
-        });
-    }, []);
-
     const run = async () => {
         if (!selected) return;
+
         setLoading(true);
         setResult(null);
         setWeek([]);
         setError(null);
-        setHistory([]);
-        try {
-            const [explRes, histRes] = await Promise.all([
-                getExplanation(selected),
-                getPriceHistory(selected, 30),
-            ]);
-            if (explRes.data.error) throw new Error(explRes.data.error);
-            setResult(explRes.data);
-            setHistory(histRes.data);
 
-            // Pull the full 7-day horizon, pinned to the same market the
-            // explanation/advice was computed for so the numbers agree.
-            const weekRes = await getForecast(selected, explRes.data.market, 7);
-            if (!weekRes.data.error) {
+        try {
+            const explRes = await getExplanation(selected);
+
+            if (explRes.data?.error) {
+                throw new Error(explRes.data.error);
+            }
+
+            setResult(explRes.data);
+
+            const forecastMarket = explRes.data.market;
+            const weekRes = await getForecast(selected, forecastMarket, 7);
+
+            if (!weekRes.data?.error) {
                 setWeek(weekRes.data.forecast || []);
             }
         } catch (e) {
-            setError(e.message || "Forecast failed.");
+            setError(e.message || "ফোরকাস্ট করা যায়নি।");
         } finally {
             setLoading(false);
         }
     };
 
-    const dir = result?.direction;
+    const meta = selected
+        ? getCategoryMeta(getProductCategory(selected))
+        : null;
 
     return (
-        <div>
-            <div style={{ marginBottom: 28 }}>
-                <h1 style={{ marginBottom: 6 }}>7-Day Forecast</h1>
-                <p style={{ color: "var(--muted)", fontSize: 13 }}>
-                    XGBoost prediction + AI explanation · Pick a product and run
-                </p>
-            </div>
+        <div className="page-enter">
+            <section
+                className="page-hero"
+                style={{
+                    display: "grid",
+                    gridTemplateColumns: "minmax(0, 1.1fr) 240px",
+                    gap: 24,
+                    alignItems: "center",
+                    marginBottom: 20,
+                }}
+            >
+                <div>
+                    <div className="hero-kicker">📈 AI দিয়ে দামের ফোরকাস্ট</div>
 
-            {/* Controls */}
-            <div style={{ display: "flex", gap: 10, marginBottom: 28, flexWrap: "wrap" }}>
-                <ProductSelector
-                    products={products}
-                    value={selected}
-                    onChange={setSelected}
-                />
-                <button
-                    onClick={run}
-                    disabled={loading || !selected}
+                    <h1 className="page-title">আজ কিনবো, নাকি অপেক্ষা করবো?</h1>
+
+                    <p className="page-subtitle">
+                        DAM ডাটা, দামের ট্রেন্ড, আবহাওয়া, সপ্তাহান্ত ও ছুটির তথ্য দেখে AI সহজভাবে পরামর্শ দেয়।
+                    </p>
+                </div>
+
+                {selected && (
+                    <div
+                        style={{
+                            height: 210,
+                            borderRadius: 28,
+                            background: "rgba(255,255,255,0.18)",
+                            display: "grid",
+                            placeItems: "center",
+                            overflow: "hidden",
+                        }}
+                    >
+                        <img
+                            src={getProductImage(selected)}
+                            alt={toLabel(selected)}
+                            style={{
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "contain",
+                                padding: 18,
+                                filter: "drop-shadow(0 24px 30px rgba(0,0,0,0.22))",
+                            }}
+                        />
+                    </div>
+                )}
+            </section>
+
+            <div className="glass-card" style={{ padding: 16, marginBottom: 20 }}>
+                <div
                     style={{
-                        background: loading ? "var(--surface2)" : "var(--accent)",
-                        color: loading ? "var(--muted)" : "#fff",
-                        border: "none",
-                        borderRadius: "var(--radius)",
-                        padding: "8px 20px",
-                        cursor: loading ? "not-allowed" : "pointer",
-                        fontWeight: 600,
-                        fontSize: 13,
-                        transition: "background 0.15s",
+                        display: "flex",
+                        gap: 12,
+                        flexWrap: "wrap",
+                        alignItems: "center",
                     }}
                 >
-                    {loading ? "Running model…" : "Run Forecast"}
-                </button>
+                    <ProductSelector value={selected} onChange={setSelected} />
+
+                    <button
+                        onClick={run}
+                        disabled={loading || !selected}
+                        className="mm-btn"
+                    >
+                        {loading ? "মডেল চলছে…" : "ফোরকাস্ট দেখুন"}
+                    </button>
+
+                    {selected && meta && (
+                        <div className="product-category" style={{ marginBottom: 0 }}>
+                            {meta.icon} {meta.label}
+                        </div>
+                    )}
+                </div>
             </div>
 
             {error && (
-                <div style={{
-                    background: "rgba(248,113,113,0.08)",
-                    border: "1px solid rgba(248,113,113,0.25)",
-                    borderRadius: "var(--radius)",
-                    padding: "12px 16px",
-                    color: "var(--up)",
-                    fontSize: 13,
-                    marginBottom: 20,
-                }}>
-                    ⚠ {error}
+                <div className="alert-error" style={{ marginBottom: 20 }}>
+                    ⚠️ {error}
                 </div>
             )}
 
             {result && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                    <DecisionSummary
+                        productLabel={toLabel(selected)}
+                        marketName={marketLabel(result.market)}
+                        result={result}
+                        week={week}
+                    />
 
-                    {/* Numbers */}
-                    <div style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
-                        gap: 12,
-                    }}>
-                        <NumBox label="Today avg" value={`৳${result.current_avg}`} />
-                        <NumBox
-                            label="Tomorrow (predicted)"
-                            value={`৳${result.predicted_tomorrow}`}
-                            sub={
-                                result.predicted_low != null
-                                    ? `Likely ৳${result.predicted_low} – ৳${result.predicted_high}`
-                                    : null
-                            }
-                            accent={dir === "increase" ? "var(--up)" : dir === "decrease" ? "var(--down)" : null}
-                        />
-                        <NumBox
-                            label="Expected change"
-                            value={`${result.change_pct > 0 ? "+" : ""}${result.change_pct}%`}
-                            accent={result.change_pct > 0 ? "var(--up)" : result.change_pct < 0 ? "var(--down)" : "var(--stable)"}
-                        />
-                    </div>
+                    <SectionCard title="AI কেন এই পরামর্শ দিচ্ছে?">
+                        <ExplanationBox text={translateApiText(result.explanation)} />
 
-                    {/* Advice */}
-                    <div>
-                        <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                            Shopping advice
-                        </div>
-                        <AdviceBadge advice={result.advice} reason={result.reason} size="lg" />
-                    </div>
+                        <ForecastSignals result={result} />
 
-                    {/* AI explanation */}
-                    <ExplanationBox text={result.explanation} />
+                        {result.top_factors?.length > 0 && (
+                            <div style={{ marginTop: 14 }}>
+                                <WhyFactors factors={result.top_factors} />
+                            </div>
+                        )}
+                    </SectionCard>
 
-                    {/* SHAP-ranked model drivers for this exact prediction */}
-                    <WhyFactors factors={result.top_factors} />
-
-                    {/* 5/7-day forecast with real uncertainty band */}
                     {week.length > 0 && (
-                        <div style={{
-                            background: "var(--surface)",
-                            border: "1px solid var(--border)",
-                            borderRadius: "var(--radius-lg)",
-                            padding: "18px 20px",
-                        }}>
-                            <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>
-                                {toLabel(selected)} — Forecast with confidence band
-                            </div>
-                            <div style={{ fontSize: 11.5, color: "var(--muted)", marginBottom: 10 }}>
-                                Shaded area = model's P10–P90 range (80% confidence), line = median prediction
-                            </div>
-                            <ForecastBandChart data={week} />
-                        </div>
-                    )}
-
-                    {/* Chart */}
-                    {history.length > 0 && (
-                        <div style={{
-                            background: "var(--surface)",
-                            border: "1px solid var(--border)",
-                            borderRadius: "var(--radius-lg)",
-                            padding: "18px 20px",
-                        }}>
-                            <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 14 }}>
-                                {toLabel(selected)} — Last 30 days
-                            </div>
-                            <TrendChart data={history} />
-                        </div>
+                        <SectionCard title="দামের আগাম ধারণা">
+                            <ForecastTimeline
+                                week={week}
+                                currentAvg={result.current_avg}
+                            />
+                        </SectionCard>
                     )}
                 </div>
             )}
@@ -184,24 +172,71 @@ export default function ForecastPage() {
     );
 }
 
-function NumBox({ label, value, sub, accent }) {
+function SectionCard({ title, children }) {
     return (
-        <div style={{
-            background: "var(--surface)",
-            border: "1px solid var(--border)",
-            borderRadius: "var(--radius)",
-            padding: "14px 16px",
-        }}>
-            <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</div>
-            <div style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: 22,
-                fontWeight: 600,
-                color: accent || "var(--text)",
-            }}>{value}</div>
-            {sub && (
-                <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 4 }}>{sub}</div>
-            )}
+        <div className="glass-card" style={{ padding: "20px 22px" }}>
+            <div
+                style={{
+                    fontWeight: 950,
+                    fontSize: 16,
+                    color: "var(--gray-900)",
+                    marginBottom: 12,
+                }}
+            >
+                {title}
+            </div>
+
+            {children}
         </div>
+    );
+}
+
+function ForecastSignals({ result }) {
+    if (!result) return null;
+
+    const rain =
+        typeof result.rainfall_mm === "number"
+            ? `${result.rainfall_mm} মিমি বৃষ্টি`
+            : "বৃষ্টির ডাটা নেই";
+
+    const temp =
+        typeof result.temp_avg_c === "number"
+            ? `${result.temp_avg_c}°C গড় তাপমাত্রা`
+            : "তাপমাত্রার ডাটা নেই";
+
+    const calendar = result.is_festival
+        ? "উৎসব/ছুটির প্রভাব ধরা হয়েছে"
+        : result.is_weekend
+            ? "সপ্তাহান্তের প্রভাব ধরা হয়েছে"
+            : "উৎসব/সপ্তাহান্তের আলাদা প্রভাব নেই";
+
+    return (
+        <div
+            style={{
+                display: "flex",
+                gap: 8,
+                flexWrap: "wrap",
+                marginTop: 12,
+            }}
+        >
+            <SignalChip icon="🌧️" text={rain} />
+            <SignalChip icon="🌡️" text={temp} />
+            <SignalChip icon="📅" text={calendar} />
+        </div>
+    );
+}
+
+function SignalChip({ icon, text }) {
+    return (
+        <span
+            className="category-chip"
+            style={{
+                padding: "7px 11px",
+                boxShadow: "none",
+            }}
+        >
+            <span>{icon}</span>
+            {text}
+        </span>
     );
 }

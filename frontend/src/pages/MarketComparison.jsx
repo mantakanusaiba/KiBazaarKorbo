@@ -1,17 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { getMarketCompare } from "../api/client";
 import ProductSelector from "../components/ProductSelector";
-
-const MARKET_LABELS = {
-    kawran_bazar: "Kawran Bazar",
-    mirpur: "Mirpur",
-    mohammadpur: "Mohammadpur",
-    new_market: "New Market",
-    jatrabari: "Jatrabari",
-};
+import { marketLabel } from "../data/marketRegions";
+import { formatProductName, getCategoryMeta, getProductCategory, getProductImage } from "../utils/productAssets";
 
 export default function MarketComparison() {
-    const [product, setProduct] = useState("");
+    const [searchParams] = useSearchParams();
+    const [product, setProduct] = useState(() => searchParams.get("product") || "");
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -24,143 +20,99 @@ export default function MarketComparison() {
         setError(null);
         try {
             const res = await getMarketCompare(product);
-            // Sort cheapest first
-            const sorted = [...res.data].sort((a, b) => a.avg_price - b.avg_price);
-            setResults(sorted);
+            setResults([...(res.data || [])].sort((a, b) => a.avg_price - b.avg_price));
             setSearched(true);
-        } catch (e) {
-            setError("Could not load market data. Is the backend running?");
+        } catch {
+            setError("বাজারের ডাটা লোড করা যায়নি। সার্ভার চালু আছে কি না দেখুন।");
         } finally {
             setLoading(false);
         }
     };
 
+    useEffect(() => {
+        if (searchParams.get("product")) compare();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     const cheapest = results[0]?.avg_price;
     const priceFmt = (n) => Number(n).toFixed(2);
+    const meta = getCategoryMeta(getProductCategory(product));
 
     return (
         <div className="page-enter">
-            <div style={{ marginBottom: 28 }}>
-                <h1 style={{
-                    fontFamily: "var(--font-display)", fontSize: 26,
-                    fontWeight: 700, marginBottom: 6, letterSpacing: "-0.3px",
-                }}>
-                    Market Comparison
-                </h1>
-                <p style={{ color: "var(--gray-500)", fontSize: 14 }}>
-                    Compare today's prices across all Dhaka markets. Find the cheapest.
-                </p>
-            </div>
-
-            {/* Controls */}
-            <div style={{ display: "flex", gap: 10, marginBottom: 28, flexWrap: "wrap" }}>
-                <ProductSelector value={product} onChange={setProduct} />
-                <button
-                    onClick={compare}
-                    disabled={loading || !product}
-                    style={{
-                        background: loading ? "var(--gray-100)" : "var(--brand-600)",
-                        color: loading ? "var(--gray-500)" : "#fff",
-                        border: "none",
-                        borderRadius: "var(--radius-sm)",
-                        padding: "9px 20px",
-                        fontWeight: 600,
-                        fontSize: 13,
-                        cursor: loading ? "not-allowed" : "pointer",
-                        transition: "background 0.15s",
-                    }}
-                >
-                    {loading ? "Loading…" : "🏪 Compare Markets"}
-                </button>
-            </div>
-
-            {error && (
-                <div style={{
-                    background: "var(--red-50)", border: "1px solid #fecaca",
-                    borderRadius: "var(--radius-md)", padding: "12px 16px",
-                    color: "var(--red-600)", fontSize: 13, marginBottom: 20,
-                }}>
-                    ⚠️ {error}
+            <section className="page-hero" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.1fr) 240px", gap: 24, alignItems: "center", marginBottom: 20 }}>
+                <div>
+                    <div className="hero-kicker">📍 বাজার তুলনা</div>
+                    <h1 className="page-title">আজ কোন বাজারে দাম কম দেখুন।</h1>
+                    <p className="page-subtitle">একই পণ্যের দাম কোন বাজারে কম আর কোন বাজারে বেশি — সহজে তুলনা করুন।</p>
                 </div>
-            )}
+                {product && (
+                    <div style={{ height: 210, borderRadius: 28, background: "rgba(255,255,255,0.18)", display: "grid", placeItems: "center", overflow: "hidden" }}>
+                        <img src={getProductImage(product)} alt={formatProductName(product)} style={{ width: "100%", height: "100%", objectFit: "contain", padding: 18, filter: "drop-shadow(0 24px 30px rgba(0,0,0,0.22))" }} />
+                    </div>
+                )}
+            </section>
+
+            <div className="glass-card" style={{ padding: 16, marginBottom: 20 }}>
+                <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+                    <ProductSelector value={product} onChange={setProduct} />
+                    <button onClick={compare} disabled={loading || !product} className="mm-btn">
+                        {loading ? "লোড হচ্ছে…" : "🏪 বাজার তুলনা করুন"}
+                    </button>
+                    {product && <div className="product-category" style={{ marginBottom: 0 }}>{meta.icon} {meta.label}</div>}
+                </div>
+            </div>
+
+            {error && <div className="alert-error" style={{ marginBottom: 20 }}>⚠️ {error}</div>}
 
             {results.length > 0 && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 600 }}>
-                    {results.map((r, i) => {
-                        const isCheapest = r.avg_price === cheapest;
-                        const diff = ((r.avg_price - cheapest) / cheapest * 100).toFixed(1);
-                        const label = MARKET_LABELS[r.market] || r.market;
+                <div className="glass-card" style={{ padding: 16 }}>
+                    <div className="section-head" style={{ marginTop: 0 }}>
+                        <div>
+                            <h2 className="section-title">বাজার র‍্যাঙ্কিং</h2>
+                            <p className="section-note">কম দাম আগে · {formatProductName(product)}</p>
+                        </div>
+                    </div>
+                    <div style={{ display: "grid", gap: 10 }}>
+                        {results.map((r, i) => {
+                            const isCheapest = r.avg_price === cheapest;
+                            const diff = cheapest ? ((r.avg_price - cheapest) / cheapest * 100).toFixed(1) : "0.0";
+                            const label = marketLabel(r.market);
 
-                        return (
-                            <div
-                                key={r.market}
-                                style={{
-                                    background: isCheapest ? "var(--green-50)" : "var(--surface)",
+                            return (
+                                <div key={r.market} style={{
+                                    background: isCheapest ? "linear-gradient(135deg, var(--green-50), white)" : "white",
                                     border: `1px solid ${isCheapest ? "var(--green-100)" : "var(--gray-200)"}`,
-                                    borderRadius: "var(--radius-md)",
-                                    padding: "16px 20px",
-                                    display: "flex",
+                                    borderRadius: 22,
+                                    padding: "14px 16px",
+                                    display: "grid",
+                                    gridTemplateColumns: "42px 1fr auto",
                                     alignItems: "center",
-                                    gap: 16,
+                                    gap: 14,
                                     boxShadow: "var(--shadow-xs)",
-                                }}
-                            >
-                                {/* Rank */}
-                                <div style={{
-                                    width: 32, height: 32,
-                                    borderRadius: "50%",
-                                    background: isCheapest ? "var(--green-600)" : "var(--gray-100)",
-                                    color: isCheapest ? "#fff" : "var(--gray-500)",
-                                    display: "flex", alignItems: "center", justifyContent: "center",
-                                    fontWeight: 700, fontSize: 14, flexShrink: 0,
                                 }}>
-                                    {i + 1}
-                                </div>
-
-                                {/* Market name */}
-                                <div style={{ flex: 1 }}>
-                                    <div style={{ fontWeight: 600, fontSize: 15, color: "var(--gray-900)" }}>
-                                        {label}
-                                        {isCheapest && (
-                                            <span style={{
-                                                marginLeft: 8, fontSize: 11, fontWeight: 600,
-                                                background: "var(--green-600)", color: "#fff",
-                                                padding: "2px 8px", borderRadius: 999,
-                                            }}>
-                                                CHEAPEST
-                                            </span>
-                                        )}
+                                    <div style={{ width: 42, height: 42, borderRadius: 16, background: isCheapest ? "linear-gradient(135deg, #047857, #10b981)" : "var(--gray-100)", color: isCheapest ? "white" : "var(--gray-500)", display: "grid", placeItems: "center", fontWeight: 950 }}>
+                                        {i + 1}
                                     </div>
-                                    <div style={{ fontSize: 12, color: "var(--gray-500)", marginTop: 2 }}>
-                                        Range: ৳{priceFmt(r.min_price)} – ৳{priceFmt(r.max_price)}
-                                    </div>
-                                </div>
-
-                                {/* Price */}
-                                <div style={{ textAlign: "right" }}>
-                                    <div style={{
-                                        fontFamily: "var(--font-display)", fontSize: 22,
-                                        fontWeight: 700, color: isCheapest ? "var(--green-600)" : "var(--gray-900)",
-                                    }}>
-                                        ৳{priceFmt(r.avg_price)}
-                                    </div>
-                                    {!isCheapest && (
-                                        <div style={{ fontSize: 12, color: "var(--red-600)", marginTop: 2 }}>
-                                            +{diff}% vs cheapest
+                                    <div>
+                                        <div style={{ fontWeight: 950, fontSize: 15, color: "var(--gray-900)" }}>
+                                            {label}
+                                            {isCheapest && <span style={{ marginLeft: 8, fontSize: 10.5, background: "var(--green-600)", color: "white", padding: "3px 8px", borderRadius: 999, fontWeight: 950 }}>সবচেয়ে কম</span>}
                                         </div>
-                                    )}
+                                        <div style={{ fontSize: 12, color: "var(--gray-500)", marginTop: 3 }}>দামের সীমা: ৳{priceFmt(r.min_price)} – ৳{priceFmt(r.max_price)}</div>
+                                    </div>
+                                    <div style={{ textAlign: "right" }}>
+                                        <div style={{ fontFamily: "var(--font-display)", fontSize: 23, fontWeight: 950, color: isCheapest ? "var(--green-700)" : "var(--gray-900)", letterSpacing: -0.6 }}>৳{priceFmt(r.avg_price)}</div>
+                                        {!isCheapest && <div style={{ fontSize: 12, color: "var(--red-600)", fontWeight: 850 }}>+{diff}% বেশি</div>}
+                                    </div>
                                 </div>
-                            </div>
-                        );
-                    })}
+                            );
+                        })}
+                    </div>
                 </div>
             )}
 
-            {searched && results.length === 0 && !loading && (
-                <p style={{ color: "var(--gray-500)", fontSize: 14 }}>
-                    No market data found for this product today.
-                </p>
-            )}
+            {searched && results.length === 0 && !loading && <div className="empty-state">আজ এই পণ্যের বাজার ডাটা পাওয়া যায়নি।</div>}
         </div>
     );
 }

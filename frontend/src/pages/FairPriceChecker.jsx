@@ -1,139 +1,284 @@
 import { useState } from "react";
 import { postFairPrice } from "../api/client";
 import ProductSelector from "../components/ProductSelector";
+import useSessionState from "../hooks/useSessionState";
+import {
+    getCategoryMeta,
+    getProductCategory,
+    getProductImage,
+    formatProductName,
+} from "../utils/productAssets";
+import { bnTk } from "../utils/banglaFormat";
+
+function getFairResultText(result) {
+    if (!result) {
+        return {
+            icon: "➖",
+            title: "ফলাফল পাওয়া যায়নি",
+            message: "আবার চেষ্টা করুন।",
+        };
+    }
+
+    const paid = bnTk(result.paid, 2);
+    const min = bnTk(result.official_min, 2);
+    const max = bnTk(result.official_max, 2);
+
+    if (result.color === "green") {
+        return {
+            icon: "✅",
+            title: "ঠিক দামের মধ্যে আছে",
+            message: `আপনি ${paid} দিয়েছেন। বাজারে এই পণ্যের স্বাভাবিক দাম ${min} থেকে ${max}। তাই দামটা ঠিক আছে।`,
+        };
+    }
+
+    if (result.color === "red") {
+        return {
+            icon: "❌",
+            title: "দাম বেশি মনে হচ্ছে",
+            message: `আপনি ${paid} দিয়েছেন। বাজারে এই পণ্যের স্বাভাবিক দাম ${min} থেকে ${max}। তাই এই দামটা বেশি হতে পারে।`,
+        };
+    }
+
+    return {
+        icon: "➖",
+        title: "দাম নিশ্চিত বলা যাচ্ছে না",
+        message: `আপনি ${paid} দিয়েছেন। বাজারে এই পণ্যের স্বাভাবিক দাম ${min} থেকে ${max}। আরো বাজারের সাথে মিলিয়ে দেখা ভালো।`,
+    };
+}
 
 export default function FairPriceChecker() {
-    const [product, setProduct] = useState("");
-    const [paid, setPaid] = useState("");
-    const [result, setResult] = useState(null);
+    const [product, setProduct] = useSessionState("fair_product", "");
+    const [paid, setPaid] = useSessionState("fair_paid_price", "");
+    const [result, setResult] = useSessionState("fair_result", null);
+
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
     const check = async () => {
         if (!product || !paid) return;
+
         setLoading(true);
         setResult(null);
         setError(null);
+
         try {
             const res = await postFairPrice(product, parseFloat(paid));
             setResult(res.data);
-        } catch (e) {
-            setError("Could not check price. Is the backend running?");
+        } catch {
+            setError("দাম চেক করা যায়নি। সার্ভার চালু আছে কি না দেখুন।");
         } finally {
             setLoading(false);
         }
     };
 
-    const colorMap = { green: "var(--green-600)", red: "var(--red-600)", gray: "var(--gray-500)" };
-    const bgMap = { green: "var(--green-50)", red: "var(--red-50)", gray: "var(--gray-50)" };
-    const borderMap = { green: "var(--green-100)", red: "#fecaca", gray: "var(--gray-200)" };
+    const colorMap = {
+        green: "var(--brand-700)",
+        red: "var(--red-600)",
+        gray: "var(--gray-500)",
+    };
+
+    const bgMap = {
+        green: "var(--brand-50)",
+        red: "var(--red-50)",
+        gray: "var(--gray-50)",
+    };
+
+    const borderMap = {
+        green: "var(--brand-100)",
+        red: "#fecaca",
+        gray: "var(--gray-200)",
+    };
+
+    const meta = product ? getCategoryMeta(getProductCategory(product)) : null;
+    const fairText = result ? getFairResultText(result) : null;
 
     return (
         <div className="page-enter">
-            <div style={{ marginBottom: 28 }}>
-                <h1 style={{
-                    fontFamily: "var(--font-display)", fontSize: 26,
-                    fontWeight: 700, marginBottom: 6, letterSpacing: "-0.3px"
-                }}>
-                    Fair Price Checker
-                </h1>
-                <p style={{ color: "var(--gray-500)", fontSize: 14 }}>
-                    Enter what you paid and compare with the official Dhaka market range.
+            <section className="page-hero" style={{ marginBottom: 20 }}>
+                <div className="hero-kicker">⚖️ ঠিক দাম যাচাই</div>
+
+                <h1 className="page-title">আপনি ঠিক দাম দিয়েছেন কি না দেখুন।</h1>
+
+                <p className="page-subtitle">
+                    আপনি কত টাকা দিয়েছেন লিখুন। আমরা সর্বশেষ বাজার দামের সাথে মিলিয়ে দেখাবো।
                 </p>
-            </div>
+            </section>
 
-            <div style={{
-                background: "var(--surface)",
-                border: "1px solid var(--gray-200)",
-                borderRadius: "var(--radius-lg)",
-                padding: "24px 28px",
-                maxWidth: 440,
-                boxShadow: "var(--shadow-xs)",
-                display: "flex",
-                flexDirection: "column",
-                gap: 14,
-            }}>
-                <div>
-                    <label style={{ fontSize: 13, fontWeight: 600, color: "var(--gray-700)", display: "block", marginBottom: 6 }}>
-                        Product
-                    </label>
-                    <ProductSelector value={product} onChange={setProduct} />
+            <div
+                style={{
+                    display: "grid",
+                    gridTemplateColumns: "minmax(0, 440px) minmax(260px, 1fr)",
+                    gap: 20,
+                    alignItems: "start",
+                }}
+            >
+                <div className="glass-card" style={{ padding: 24 }}>
+                    <div style={{ display: "grid", gap: 14 }}>
+                        <label style={{ display: "grid", gap: 6 }}>
+                            <span
+                                style={{
+                                    fontSize: 13,
+                                    fontWeight: 900,
+                                    color: "var(--gray-700)",
+                                }}
+                            >
+                                পণ্য
+                            </span>
+
+                            <ProductSelector value={product} onChange={setProduct} />
+                        </label>
+
+                        <label style={{ display: "grid", gap: 6 }}>
+                            <span
+                                style={{
+                                    fontSize: 13,
+                                    fontWeight: 900,
+                                    color: "var(--gray-700)",
+                                }}
+                            >
+                                আপনি কত টাকা দিয়েছেন
+                            </span>
+
+                            <input
+                                className="mm-input"
+                                type="number"
+                                inputMode="decimal"
+                                placeholder="যেমন: ১৯৫"
+                                value={paid}
+                                onChange={(e) => setPaid(e.target.value)}
+                            />
+                        </label>
+
+                        <button
+                            onClick={check}
+                            disabled={loading || !product || !paid}
+                            className="mm-btn"
+                        >
+                            {loading ? "চেক হচ্ছে…" : "⚖️ দাম চেক করুন"}
+                        </button>
+                    </div>
                 </div>
 
-                <div>
-                    <label style={{ fontSize: 13, fontWeight: 600, color: "var(--gray-700)", display: "block", marginBottom: 6 }}>
-                        Price you paid (BDT)
-                    </label>
-                    <input
-                        type="number"
-                        placeholder="e.g. 195"
-                        value={paid}
-                        onChange={e => setPaid(e.target.value)}
-                        style={{
-                            width: "100%",
-                            padding: "9px 14px",
-                            borderRadius: "var(--radius-sm)",
-                            border: "1px solid var(--gray-300)",
-                            fontSize: 14,
-                            background: "var(--surface)",
-                            color: "var(--gray-900)",
-                        }}
-                    />
-                </div>
+                <div className="glass-card" style={{ padding: 18 }}>
+                    {product ? (
+                        <>
+                            <div
+                                style={{
+                                    minHeight: 320,
+                                    height: 320,
+                                    borderRadius: 24,
+                                    background: "linear-gradient(135deg, white, var(--brand-50))",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    overflow: "hidden",
+                                    padding: 22,
+                                }}
+                            >
+                                <img
+                                    src={getProductImage(product)}
+                                    alt={formatProductName(product)}
+                                    style={{
+                                        display: "block",
+                                        maxWidth: "100%",
+                                        maxHeight: "100%",
+                                        width: "auto",
+                                        height: "auto",
+                                        objectFit: "contain",
+                                        filter: "drop-shadow(0 18px 22px rgba(15,23,42,0.14))",
+                                    }}
+                                />
+                            </div>
 
-                <button
-                    onClick={check}
-                    disabled={loading || !product || !paid}
-                    style={{
-                        background: loading ? "var(--gray-100)" : "var(--brand-600)",
-                        color: loading ? "var(--gray-500)" : "#fff",
-                        border: "none",
-                        borderRadius: "var(--radius-sm)",
-                        padding: "10px 20px",
-                        fontWeight: 600,
-                        fontSize: 14,
-                        cursor: loading ? "not-allowed" : "pointer",
-                        transition: "background 0.15s",
-                    }}
-                >
-                    {loading ? "Checking…" : "⚖️ Check Price"}
-                </button>
+                            <div style={{ marginTop: 14 }}>
+                                {meta && (
+                                    <div className="product-category">
+                                        {meta.icon} {meta.label}
+                                    </div>
+                                )}
+
+                                <h2 className="section-title" style={{ marginTop: 4 }}>
+                                    {formatProductName(product)}
+                                </h2>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="empty-state">
+                            একটি পণ্য বাছুন, এখানে ছবি দেখা যাবে।
+                        </div>
+                    )}
+                </div>
             </div>
 
             {error && (
-                <div style={{
-                    marginTop: 20, background: "var(--red-50)",
-                    border: "1px solid #fecaca", borderRadius: "var(--radius-md)",
-                    padding: "12px 16px", color: "var(--red-600)", fontSize: 13, maxWidth: 440,
-                }}>
+                <div
+                    className="alert-error"
+                    style={{
+                        marginTop: 20,
+                        maxWidth: 620,
+                    }}
+                >
                     ⚠️ {error}
                 </div>
             )}
 
-            {result && (
-                <div style={{
-                    marginTop: 24,
-                    background: bgMap[result.color] || "var(--gray-50)",
-                    border: `2px solid ${borderMap[result.color] || "var(--gray-200)"}`,
-                    borderRadius: "var(--radius-lg)",
-                    padding: "20px 24px",
-                    maxWidth: 440,
-                }}>
-                    <div style={{
-                        color: colorMap[result.color] || "var(--gray-700)",
-                        fontWeight: 700, fontSize: 17, marginBottom: 8,
-                    }}>
-                        {result.color === "green" ? "✅" : result.color === "red" ? "❌" : "➖"} {result.label}
+            {result && fairText && (
+                <div
+                    className="glass-card"
+                    style={{
+                        marginTop: 22,
+                        background: bgMap[result.color] || "var(--gray-50)",
+                        border: "2px solid " + (borderMap[result.color] || "var(--gray-200)"),
+                        padding: "22px 24px",
+                        maxWidth: 720,
+                    }}
+                >
+                    <div
+                        style={{
+                            color: colorMap[result.color] || "var(--gray-700)",
+                            fontWeight: 950,
+                            fontSize: 20,
+                            marginBottom: 8,
+                        }}
+                    >
+                        {fairText.icon} {fairText.title}
                     </div>
-                    <p style={{ fontSize: 14, color: "var(--gray-700)", lineHeight: 1.6, marginBottom: 12 }}>
-                        {result.message}
+
+                    <p
+                        style={{
+                            fontSize: 14,
+                            color: "var(--gray-700)",
+                            lineHeight: 1.7,
+                            marginBottom: 14,
+                        }}
+                    >
+                        {fairText.message}
                     </p>
-                    <div style={{
-                        display: "flex", gap: 16, fontSize: 13,
-                        color: "var(--gray-500)", borderTop: "1px solid var(--gray-200)", paddingTop: 12,
-                    }}>
-                        <span>You paid: <strong style={{ color: "var(--gray-900)" }}>৳{result.paid}</strong></span>
-                        <span>Official range: <strong style={{ color: "var(--gray-900)" }}>৳{result.official_min} – ৳{result.official_max}</strong></span>
+
+                    <div
+                        style={{
+                            display: "flex",
+                            gap: 16,
+                            flexWrap: "wrap",
+                            fontSize: 13,
+                            color: "var(--gray-600)",
+                            borderTop: "1px solid rgba(148,163,184,0.35)",
+                            paddingTop: 12,
+                        }}
+                    >
+                        <span>
+                            আপনি দিয়েছেন:{" "}
+                            <strong style={{ color: "var(--gray-900)" }}>
+                                {bnTk(result.paid, 2)}
+                            </strong>
+                        </span>
+
+                        <span>
+                            বাজার দামের সীমা:{" "}
+                            <strong style={{ color: "var(--gray-900)" }}>
+                                {bnTk(result.official_min, 2)} – {bnTk(result.official_max, 2)}
+                            </strong>
+                        </span>
                     </div>
                 </div>
             )}

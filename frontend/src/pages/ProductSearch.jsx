@@ -3,12 +3,19 @@ import { useSearchParams } from "react-router-dom";
 import { getPriceHistory } from "../api/client";
 import ProductSelector from "../components/ProductSelector";
 import TrendChart from "../components/TrendChart";
+import {
+    formatProductName,
+    getCategoryMeta,
+    getProductCategory,
+    getProductImage,
+} from "../utils/productAssets";
+import { bnNum, bnPct, bnTk } from "../utils/banglaFormat";
 
 const PERIODS = [
-    { label: "30 days", days: 30 },
-    { label: "60 days", days: 60 },
-    { label: "90 days", days: 90 },
-    { label: "6 months", days: 180 },
+    { label: "৩০ দিন", days: 30 },
+    { label: "৬০ দিন", days: 60 },
+    { label: "৯০ দিন", days: 90 },
+    { label: "৬ মাস", days: 180 },
 ];
 
 export default function ProductSearch() {
@@ -21,17 +28,22 @@ export default function ProductSearch() {
 
     const load = (prod, d) => {
         if (!prod) return;
+
         setLoading(true);
+
         getPriceHistory(prod, d)
             .then((r) => {
-                setHistory(r.data);
-                if (r.data.length) setLatest(r.data[r.data.length - 1]);
+                const rows = r.data || [];
+                setHistory(rows);
+                setLatest(rows.length ? rows[rows.length - 1] : null);
             })
             .catch(console.error)
             .finally(() => setLoading(false));
     };
 
-    useEffect(() => { if (product) load(product, days); }, [product, days]);
+    useEffect(() => {
+        if (product) load(product, days);
+    }, [product, days]);
 
     const handleProduct = (p) => {
         setProduct(p);
@@ -40,94 +52,168 @@ export default function ProductSearch() {
 
     const pctChange = (() => {
         if (history.length < 2) return null;
-        const first = history[0].avg_price;
-        const last = history[history.length - 1].avg_price;
-        return (((last - first) / first) * 100).toFixed(1);
+
+        const first = Number(history[0].avg_price || 0);
+        const last = Number(history[history.length - 1].avg_price || 0);
+
+        if (!first) return null;
+
+        return ((last - first) / first) * 100;
     })();
+
+    const meta = product ? getCategoryMeta(getProductCategory(product)) : null;
 
     return (
         <div className="page-enter">
-            <h1 style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 700, marginBottom: 6, letterSpacing: "-0.3px" }}>
-                Product Price History
-            </h1>
-            <p style={{ color: "var(--gray-500)", fontSize: 14, marginBottom: 24 }}>
-                View price trends over time for any product.
-            </p>
+            <section
+                className="page-hero"
+                style={{
+                    display: "grid",
+                    gridTemplateColumns: "minmax(0, 1.1fr) 240px",
+                    gap: 24,
+                    alignItems: "center",
+                    marginBottom: 20,
+                }}
+            >
+                <div>
+                    <div className="hero-kicker">🔎 পণ্যের দাম বিশ্লেষণ</div>
 
-            {/* Controls */}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 28 }}>
-                <ProductSelector value={product} onChange={handleProduct} />
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                    {PERIODS.map((p) => (
-                        <button
-                            key={p.days}
-                            onClick={() => setDays(p.days)}
+                    <h1 className="page-title">কেনার আগে আগের দাম দেখে নিন।</h1>
+
+                    <p className="page-subtitle">
+                        যেকোনো পণ্য বাছুন। সাম্প্রতিক দাম, সর্বনিম্ন-সর্বোচ্চ দাম আর ট্রেন্ড দেখুন।
+                    </p>
+                </div>
+
+                {product && (
+                    <div
+                        style={{
+                            height: 210,
+                            borderRadius: 28,
+                            background: "rgba(255,255,255,0.18)",
+                            display: "grid",
+                            placeItems: "center",
+                            overflow: "hidden",
+                        }}
+                    >
+                        <img
+                            src={getProductImage(product)}
+                            alt={formatProductName(product)}
                             style={{
-                                padding: "8px 14px",
-                                borderRadius: "var(--radius-sm)",
-                                border: `1px solid ${days === p.days ? "var(--brand-600)" : "var(--gray-300)"}`,
-                                background: days === p.days ? "var(--brand-600)" : "var(--surface)",
-                                color: days === p.days ? "#fff" : "var(--gray-700)",
-                                fontSize: 13,
-                                fontWeight: days === p.days ? 600 : 400,
-                                cursor: "pointer",
-                                transition: "all 0.15s",
+                                maxWidth: "100%",
+                                maxHeight: "100%",
+                                width: "auto",
+                                height: "auto",
+                                objectFit: "contain",
+                                padding: 18,
+                                filter: "drop-shadow(0 24px 30px rgba(0,0,0,0.22))",
                             }}
-                        >
-                            {p.label}
-                        </button>
-                    ))}
+                        />
+                    </div>
+                )}
+            </section>
+
+            <div className="glass-card" style={{ padding: 16, marginBottom: 20 }}>
+                <div
+                    style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: 12,
+                        alignItems: "center",
+                    }}
+                >
+                    <ProductSelector value={product} onChange={handleProduct} />
+
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        {PERIODS.map((p) => (
+                            <button
+                                key={p.days}
+                                onClick={() => setDays(p.days)}
+                                className={`category-chip ${days === p.days ? "active" : ""}`}
+                            >
+                                {p.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {product && meta && (
+                        <div className="product-category" style={{ marginBottom: 0 }}>
+                            {meta.icon} {meta.label}
+                        </div>
+                    )}
                 </div>
             </div>
 
-            {/* Summary stats */}
             {latest && !loading && (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 24 }}>
-                    {[
-                        { label: "Latest avg", value: `৳${Number(latest.avg_price).toFixed(2)}`, color: "var(--brand-600)" },
-                        { label: "Latest min", value: `৳${Number(latest.min_price).toFixed(2)}`, color: "var(--green-600)" },
-                        { label: "Latest max", value: `৳${Number(latest.max_price).toFixed(2)}`, color: "var(--red-600)" },
-                        pctChange !== null && {
-                            label: `Change (${days}d)`,
-                            value: `${pctChange > 0 ? "+" : ""}${pctChange}%`,
-                            color: pctChange > 0 ? "var(--red-600)" : pctChange < 0 ? "var(--green-600)" : "var(--gray-500)",
-                        },
-                    ].filter(Boolean).map((s) => (
-                        <div key={s.label} style={{
-                            background: "var(--surface)",
-                            border: "1px solid var(--gray-200)",
-                            borderRadius: "var(--radius-md)",
-                            padding: "12px 18px",
-                            boxShadow: "var(--shadow-xs)",
-                            minWidth: 120,
-                        }}>
-                            <div style={{ fontSize: 11, color: "var(--gray-500)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 4 }}>
-                                {s.label}
-                            </div>
-                            <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700, color: s.color }}>
-                                {s.value}
-                            </div>
-                        </div>
-                    ))}
+                <div className="stats-grid" style={{ marginBottom: 20 }}>
+                    <Stat
+                        label="সর্বশেষ গড়"
+                        value={bnTk(latest.avg_price, 2)}
+                        tone="var(--brand-700)"
+                    />
+
+                    <Stat
+                        label="সর্বশেষ সর্বনিম্ন"
+                        value={bnTk(latest.min_price, 2)}
+                        tone="var(--gray-900)"
+                    />
+
+                    <Stat
+                        label="সর্বশেষ সর্বোচ্চ"
+                        value={bnTk(latest.max_price, 2)}
+                        tone="var(--red-600)"
+                    />
+
+                    {pctChange !== null && (
+                        <Stat
+                            label={`পরিবর্তন (${bnNum(days)} দিন)`}
+                            value={`${pctChange > 0 ? "+" : ""}${bnPct(pctChange, 1)}`}
+                            tone={
+                                pctChange > 0
+                                    ? "var(--red-600)"
+                                    : pctChange < 0
+                                      ? "var(--green-600)"
+                                      : "var(--gray-500)"
+                            }
+                        />
+                    )}
                 </div>
             )}
 
-            {/* Chart */}
-            <div style={{
-                background: "var(--surface)",
-                border: "1px solid var(--gray-200)",
-                borderRadius: "var(--radius-md)",
-                padding: "20px",
-                boxShadow: "var(--shadow-xs)",
-            }}>
-                <div style={{ fontWeight: 600, fontSize: 14, color: "var(--gray-700)", marginBottom: 16 }}>
-                    Price trend (last {days} days)
+            <div className="glass-card" style={{ padding: 22 }}>
+                <div className="section-head" style={{ marginTop: 0 }}>
+                    <div>
+                        <h2 className="section-title">দামের ট্রেন্ড</h2>
+
+                        <p className="section-note">
+                            শেষ {bnNum(days)} দিন ·{" "}
+                            {product ? formatProductName(product) : "একটি পণ্য বাছুন"}
+                        </p>
+                    </div>
                 </div>
+
                 {loading ? (
-                    <div className="skeleton" style={{ height: 240, borderRadius: "var(--radius-md)" }} />
+                    <div
+                        className="skeleton"
+                        style={{
+                            height: 280,
+                            borderRadius: 20,
+                        }}
+                    />
                 ) : (
                     <TrendChart data={history} />
                 )}
+            </div>
+        </div>
+    );
+}
+
+function Stat({ label, value, tone }) {
+    return (
+        <div className="glass-card stat-card">
+            <div className="stat-label">{label}</div>
+            <div className="stat-value" style={{ color: tone }}>
+                {value}
             </div>
         </div>
     );
