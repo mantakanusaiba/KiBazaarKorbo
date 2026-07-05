@@ -1,6 +1,6 @@
 const CONFIG = {
     buy_now: {
-        label: "Buy Today",
+        label: "আজ কিনুন",
         bg: "var(--green-600)",
         light: "var(--green-50)",
         border: "var(--green-100)",
@@ -9,7 +9,7 @@ const CONFIG = {
         pill: true,
     },
     wait: {
-        label: "Wait 1–2 Days",
+        label: "১–২ দিন অপেক্ষা করুন",
         bg: "var(--brand-600)",
         light: "var(--brand-50)",
         border: "var(--brand-100)",
@@ -18,7 +18,7 @@ const CONFIG = {
         pill: true,
     },
     stable: {
-        label: "Price Stable",
+        label: "দাম প্রায় একই",
         bg: "var(--gray-500)",
         light: "var(--gray-50)",
         border: "var(--gray-200)",

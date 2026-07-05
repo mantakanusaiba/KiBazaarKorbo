@@ -2,6 +2,12 @@ import {
     ComposedChart, Area, Line, XAxis, YAxis, Tooltip,
     ResponsiveContainer, CartesianGrid, ReferenceDot,
 } from "recharts";
+import { translateApiText } from "../utils/productAssets";
+
+function forecastStepLabel(day) {
+    if (day === 1) return "পরের";
+    return `+${day}`;
+}
 
 const CustomTooltip = ({ active, payload, label }) => {
     if (!active || !payload?.length) return null;
@@ -18,19 +24,19 @@ const CustomTooltip = ({ active, payload, label }) => {
             maxWidth: 220,
         }}>
             <div style={{ fontWeight: 600, marginBottom: 6, color: "var(--gray-700)" }}>
-                {label} {row.is_festival ? "🎉" : row.is_weekend ? "🏠" : ""}
+                {label} {row.is_festival ? "🎉" : ""}
             </div>
             <div style={{ color: "var(--brand-600)", fontWeight: 600 }}>
                 ৳{Number(row.predicted_price).toFixed(2)}
             </div>
             <div style={{ color: "var(--gray-500)", fontSize: 12, marginTop: 2 }}>
-                Likely range: ৳{Number(row.predicted_low).toFixed(2)} – ৳{Number(row.predicted_high).toFixed(2)}
+                সম্ভাব্য দাম: ৳{Number(row.predicted_low).toFixed(2)} – ৳{Number(row.predicted_high).toFixed(2)}
             </div>
             {row.top_factors?.length > 0 && (
                 <div style={{ marginTop: 8, borderTop: "1px solid var(--gray-100)", paddingTop: 6 }}>
                     {row.top_factors.slice(0, 2).map(f => (
                         <div key={f.feature} style={{ color: "var(--gray-700)", fontSize: 11.5, marginBottom: 2 }}>
-                            {f.direction === "up" ? "↑" : "↓"} {f.label_en}
+                            {f.direction === "up" ? "↑" : "↓"} {translateApiText(f.label_bn || f.label_en || f.feature)}
                         </div>
                     ))}
                 </div>
@@ -39,12 +45,6 @@ const CustomTooltip = ({ active, payload, label }) => {
     );
 };
 
-/**
- * Renders a 5/7-day price forecast with an actual uncertainty band
- * (P10–P90 from the quantile XGBoost model), not a single fake-precise
- * line. `data` is the `forecast` array returned by /api/forecast/{product}
- * — each entry needs date, predicted_price, predicted_low, predicted_high.
- */
 export default function ForecastBandChart({ data }) {
     if (!data || data.length === 0) {
         return (
@@ -58,14 +58,14 @@ export default function ForecastBandChart({ data }) {
                 background: "var(--gray-50)",
                 borderRadius: "var(--radius-md)",
             }}>
-                No forecast available.
+                ফোরকাস্ট পাওয়া যায়নি।
             </div>
         );
     }
 
     const chartData = data.map(d => ({
         ...d,
-        dateLabel: d.date.slice(5), // MM-DD
+        forecastLabel: forecastStepLabel(d.day),
     }));
 
     const specialDay = chartData.find(d => d.is_festival);
@@ -75,7 +75,7 @@ export default function ForecastBandChart({ data }) {
             <ComposedChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--gray-200)" vertical={false} />
                 <XAxis
-                    dataKey="dateLabel"
+                    dataKey="forecastLabel"
                     tick={{ fontSize: 11, fill: "var(--gray-500)" }}
                     axisLine={false}
                     tickLine={false}
@@ -90,21 +90,19 @@ export default function ForecastBandChart({ data }) {
                 />
                 <Tooltip content={<CustomTooltip />} />
 
-                {/* Uncertainty band: P10 (low) to P90 (high) */}
                 <Area
                     dataKey={d => [d.predicted_low, d.predicted_high]}
                     stroke="none"
                     fill="var(--brand-100)"
                     fillOpacity={0.7}
                     isAnimationActive={false}
-                    name="Likely range"
+                    name="সম্ভাব্য সীমা"
                 />
 
-                {/* Point forecast: P50 (median) */}
                 <Line
                     type="monotone"
                     dataKey="predicted_price"
-                    name="Predicted"
+                    name="ধারণা করা দাম"
                     stroke="var(--brand-600)"
                     strokeWidth={2.5}
                     dot={{ r: 3, fill: "var(--brand-600)" }}
@@ -114,7 +112,7 @@ export default function ForecastBandChart({ data }) {
 
                 {specialDay && (
                     <ReferenceDot
-                        x={specialDay.dateLabel}
+                        x={specialDay.forecastLabel}
                         y={specialDay.predicted_price}
                         r={6}
                         fill="var(--amber-600)"

@@ -1,19 +1,10 @@
 export default function ExplanationBox({ text, loading }) {
     if (loading) {
         return (
-            <div style={{
-                background: "#f0f9ff",
-                border: "1px solid #bae6fd",
-                borderRadius: "var(--radius-md)",
-                padding: "16px 20px",
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                color: "#0369a1",
-                fontSize: 14,
-            }}>
+            <div style={boxStyle}>
                 <span style={{
-                    width: 18, height: 18,
+                    width: 18,
+                    height: 18,
                     border: "2px solid #bae6fd",
                     borderTopColor: "#0369a1",
                     borderRadius: "50%",
@@ -21,7 +12,9 @@ export default function ExplanationBox({ text, loading }) {
                     animation: "spin 0.7s linear infinite",
                     flexShrink: 0,
                 }} />
-                Generating AI explanation in English &amp; Bangla…
+                <span style={{ color: "#0369a1", fontSize: 14 }}>
+                    AI explanation তৈরি হচ্ছে…
+                </span>
             </div>
         );
     }
@@ -29,35 +22,39 @@ export default function ExplanationBox({ text, loading }) {
     if (!text) return null;
 
     return (
-        <div style={{
-            background: "#f0f9ff",
-            border: "1px solid #bae6fd",
-            borderRadius: "var(--radius-md)",
-            padding: "16px 20px",
-        }}>
+        <div style={boxStyle}>
             <div style={{
                 display: "flex",
                 alignItems: "center",
                 gap: 8,
                 marginBottom: 10,
                 fontSize: 12,
-                fontWeight: 600,
+                fontWeight: 700,
                 color: "#0369a1",
                 textTransform: "uppercase",
                 letterSpacing: "0.5px",
             }}>
                 <span>🤖</span>
-                AI Explanation
+                AI ব্যাখ্যা
             </div>
-            <p style={{
-                fontSize: 14,
-                lineHeight: 1.75,
-                color: "var(--gray-700)",
-                whiteSpace: "pre-wrap",
+            <div style={{
+                fontSize: 14.5,
+                lineHeight: 1.85,
+                color: "var(--gray-800)",
+                whiteSpace: "pre-line",
                 margin: 0,
+                wordBreak: "break-word",
             }}>
                 {text}
-            </p>
+            </div>
         </div>
     );
 }
+
+const boxStyle = {
+    background: "linear-gradient(180deg, #f0f9ff 0%, #eef8ff 100%)",
+    border: "1px solid #bae6fd",
+    borderRadius: "var(--radius-md)",
+    padding: "17px 20px",
+    boxShadow: "0 1px 0 rgba(3, 105, 161, 0.04)",
+};

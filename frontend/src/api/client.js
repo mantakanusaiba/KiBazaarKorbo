@@ -2,7 +2,7 @@ import axios from "axios";
 
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000/api",
-    timeout: 20000,
+    timeout: 60000,
 });
 
 // Intercept slow responses (Render cold-start warning)
@@ -14,10 +14,18 @@ api.interceptors.request.use((config) => {
 export const getPricesToday = () => api.get("/prices/today");
 export const getPriceHistory = (p, days = 90) => api.get(`/prices/history/${p}?days=${days}`);
 export const getMarketCompare = (p) => api.get(`/prices/markets/${p}`);
-export const getForecast = (p) => api.get(`/forecast/${p}`);
-export const getExplanation = (p) => api.get(`/explain/${p}`);
+export const getForecast = (p, market, days = 7) =>
+    api.get(`/forecast/${p}`, { params: market ? { market, days } : { days } });
+export const getExplanation = (p, market) =>
+    api.get(`/explain/${p}`, { params: market ? { market } : {} });
 export const getProducts = () => api.get("/products");
 export const postFairPrice = (product, paid_price) =>
     api.post("/fair-price-check", { product, paid_price });
+
+export const optimizeBasket = (items, markets) =>
+    api.post("/basket/optimize", markets && markets.length ? { items, markets } : { items });
+
+export const postAgentChat = (message, history = []) =>
+    api.post("/chat", { message, history }, { timeout: 90000 });
 
 export default api;

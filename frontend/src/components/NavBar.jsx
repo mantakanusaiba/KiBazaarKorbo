@@ -2,12 +2,13 @@ import { useState } from "react";
 import { NavLink } from "react-router-dom";
 
 const LINKS = [
-    { to: "/", label: "Dashboard", icon: "📊" },
-    { to: "/search", label: "Products", icon: "🔍" },
-    { to: "/forecast", label: "Forecast", icon: "📈" },
-    { to: "/fair-price", label: "Fair Price", icon: "⚖️" },
-    { to: "/markets", label: "Markets", icon: "🏪" },
-    { to: "/basket", label: "Basket", icon: "🛒" },
+    { to: "/", label: "হোম", icon: "🏪" },
+    { to: "/search", label: "পণ্য খুঁজুন", icon: "🔎" },
+    { to: "/forecast", label: "দাম ফোরকাস্ট", icon: "📈" },
+    { to: "/fair-price", label: "ঠিক দাম?", icon: "⚖️" },
+    { to: "/markets", label: "বাজার তুলনা", icon: "📍" },
+    { to: "/basket", label: "বাজার লিস্ট", icon: "🛒" },
+    { to: "/assistant", label: "AI সহকারী", icon: "🤖" },
 ];
 
 export default function Navbar() {
@@ -15,136 +16,141 @@ export default function Navbar() {
 
     return (
         <header style={{
-            background: "linear-gradient(135deg, #0f2c6b 0%, #1a56db 100%)",
-            boxShadow: "0 2px 12px rgba(15,44,107,0.25)",
             position: "sticky",
             top: 0,
             zIndex: 100,
+            background: "rgba(244, 255, 248, 0.82)",
+            backdropFilter: "blur(22px)",
+            borderBottom: "1px solid rgba(148, 163, 184, 0.18)",
+            boxShadow: "0 10px 30px rgba(5, 46, 37, 0.08)",
         }}>
             <div style={{
-                maxWidth: 1100,
+                maxWidth: 1220,
                 margin: "0 auto",
                 padding: "0 20px",
                 display: "flex",
                 alignItems: "center",
-                height: 60,
-                gap: 8,
+                minHeight: 72,
+                gap: 14,
             }}>
-                {/* Logo */}
-                <NavLink to="/" style={{ display: "flex", alignItems: "center", gap: 8, marginRight: 8 }}>
+                <NavLink to="/" style={{ display: "flex", alignItems: "center", gap: 10, marginRight: 4 }}>
                     <div style={{
-                        width: 32, height: 32,
-                        background: "rgba(255,255,255,0.15)",
-                        borderRadius: 8,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: 18,
-                        backdropFilter: "blur(4px)",
-                    }}>🧠</div>
-                    <span style={{
-                        fontFamily: "var(--font-display)",
-                        fontWeight: 700,
-                        fontSize: 18,
-                        color: "#fff",
-                        letterSpacing: "-0.3px",
-                        whiteSpace: "nowrap",
+                        width: 42,
+                        height: 42,
+                        borderRadius: 16,
+                        display: "grid",
+                        placeItems: "center",
+                        background: "linear-gradient(135deg, #047857, #10b981)",
+                        color: "white",
+                        fontSize: 21,
+                        boxShadow: "0 14px 30px rgba(5, 150, 105, 0.28)",
                     }}>
-                        MarketMind <span style={{ opacity: 0.7, fontWeight: 500 }}>AI</span>
-                    </span>
+                        🧺
+                    </div>
+                    <div style={{ lineHeight: 1 }}>
+                        <div style={{
+                            fontFamily: "var(--font-display)",
+                            fontWeight: 950,
+                            color: "var(--brand-900)",
+                            letterSpacing: "-0.6px",
+                            fontSize: 19,
+                        }}>
+                            কি বাজার করবো?
+                        </div>
+                        <div style={{ fontSize: 10.5, color: "var(--gray-500)", fontWeight: 900, letterSpacing: "0.8px", textTransform: "uppercase" }}>
+                            AI বাজার সহকারী
+                        </div>
+                    </div>
                 </NavLink>
 
-                {/* Desktop nav */}
-                <nav style={{
+                <nav className="desktop-nav" style={{
                     display: "flex",
-                    gap: 2,
-                    flex: 1,
-                    justifyContent: "flex-end",
                     alignItems: "center",
-                }}
-                    className="desktop-nav"
-                >
-                    {LINKS.map(l => (
+                    justifyContent: "flex-end",
+                    gap: 5,
+                    flex: 1,
+                }}>
+                    {LINKS.map((l) => (
                         <NavLink
                             key={l.to}
                             to={l.to}
                             end={l.to === "/"}
                             style={({ isActive }) => ({
-                                color: isActive ? "#fff" : "rgba(255,255,255,0.7)",
-                                fontWeight: isActive ? 600 : 400,
-                                fontSize: 13.5,
-                                padding: "6px 12px",
-                                borderRadius: 6,
-                                background: isActive ? "rgba(255,255,255,0.15)" : "transparent",
-                                transition: "all 0.15s",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 6,
+                                color: isActive ? "white" : "var(--gray-600)",
+                                background: isActive ? "linear-gradient(135deg, #047857, #10b981)" : "transparent",
+                                boxShadow: isActive ? "0 12px 24px rgba(5,150,105,0.20)" : "none",
+                                fontWeight: 850,
+                                fontSize: 13,
+                                padding: "9px 11px",
+                                borderRadius: 999,
+                                transition: "all 0.16s ease",
                                 whiteSpace: "nowrap",
                             })}
                         >
+                            <span>{l.icon}</span>
                             {l.label}
                         </NavLink>
                     ))}
                 </nav>
 
-                {/* Mobile hamburger */}
                 <button
-                    onClick={() => setOpen(o => !o)}
-                    aria-label="Toggle menu"
+                    className="hamburger"
+                    onClick={() => setOpen((o) => !o)}
+                    aria-label="মেনু খুলুন"
                     style={{
-                        background: "rgba(255,255,255,0.15)",
-                        border: "none",
-                        borderRadius: 6,
-                        width: 36, height: 36,
+                        marginLeft: "auto",
+                        width: 42,
+                        height: 42,
+                        borderRadius: 14,
+                        border: "1px solid var(--brand-100)",
+                        background: "white",
+                        color: "var(--brand-800)",
+                        fontSize: 20,
                         display: "none",
                         alignItems: "center",
                         justifyContent: "center",
-                        color: "#fff",
-                        fontSize: 20,
-                        marginLeft: "auto",
-                        cursor: "pointer",
                     }}
-                    className="hamburger"
                 >
                     {open ? "✕" : "☰"}
                 </button>
             </div>
 
-            {/* Mobile drawer */}
             {open && (
-                <div style={{
-                    background: "#0f2c6b",
-                    borderTop: "1px solid rgba(255,255,255,0.1)",
-                    padding: "12px 20px 16px",
-                }}>
-                    {LINKS.map(l => (
-                        <NavLink
-                            key={l.to}
-                            to={l.to}
-                            end={l.to === "/"}
-                            onClick={() => setOpen(false)}
-                            style={({ isActive }) => ({
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 10,
-                                color: isActive ? "#fff" : "rgba(255,255,255,0.7)",
-                                fontWeight: isActive ? 600 : 400,
-                                fontSize: 15,
-                                padding: "10px 12px",
-                                borderRadius: 8,
-                                background: isActive ? "rgba(255,255,255,0.12)" : "transparent",
-                                marginBottom: 4,
-                            })}
-                        >
-                            <span style={{ fontSize: 18 }}>{l.icon}</span>
-                            {l.label}
-                        </NavLink>
-                    ))}
+                <div style={{ maxWidth: 1220, margin: "0 auto", padding: "0 20px 18px" }}>
+                    <div className="glass-card" style={{ padding: 8, display: "grid", gap: 4 }}>
+                        {LINKS.map((l) => (
+                            <NavLink
+                                key={l.to}
+                                to={l.to}
+                                end={l.to === "/"}
+                                onClick={() => setOpen(false)}
+                                style={({ isActive }) => ({
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 10,
+                                    padding: "12px 13px",
+                                    borderRadius: 14,
+                                    color: isActive ? "white" : "var(--gray-700)",
+                                    background: isActive ? "linear-gradient(135deg, #047857, #10b981)" : "transparent",
+                                    fontWeight: 850,
+                                })}
+                            >
+                                <span>{l.icon}</span>{l.label}
+                            </NavLink>
+                        ))}
+                    </div>
                 </div>
             )}
 
             <style>{`
-        @media (max-width: 720px) {
-          .desktop-nav { display: none !important; }
-          .hamburger   { display: flex !important; }
-        }
-      `}</style>
+                @media (max-width: 920px) {
+                    .desktop-nav { display: none !important; }
+                    .hamburger { display: flex !important; }
+                }
+            `}</style>
         </header>
     );
 }
