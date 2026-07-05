@@ -500,13 +500,38 @@ export function getProductImage(key = "") {
 }
 
 export function getProductCategory(key = "") {
-  const k = key.toLowerCase();
+  const k = String(key || "").toLowerCase();
+
+  // Exact / priority fixes first
+  // কাঁঠাল যেন কখনো মাছ-মাংস বা অন্য category-তে না যায়
+  if (
+    k.includes("jackfruit") ||
+    k.includes("kathal") ||
+    k.includes("kanthal") ||
+    k.includes("কাঁঠাল") ||
+    k.includes("কাঠাল")
+  ) {
+    return "fruits";
+  }
+
+  // Fruits first, before fish/meat
+  if (
+    /(apple|banana|mango|orange|guava|grapes|watermelon|pineapple|jackfruit|dragon|amalki|khejur|date|lemon)/.test(k) ||
+    k.includes("coconut") ||
+    k.includes("green_coconut")
+  ) {
+    return "fruits";
+  }
 
   if (k === "egg" || k.startsWith("egg_") || /(milk|powder)/.test(k)) {
     return "egg_dairy";
   }
 
-  if (/(fish|hilsha|katla|ruhi|rui|pangash|telapia|tilapia|rupchanda|singhi|kai|poah|carp|mregal|mrigel|mrigal|mutton|beef|chicken|broiler|sonali|hen|duck)/.test(k)) {
+  // Fish and meat only
+  if (
+    /(^|_)(fish|hilsha|katla|ruhi|rui|pangash|telapia|telapianilotica|tilapia|rupchanda|singhi|kai|poah|carp|mregal|mrigel|mrigal)($|_)/.test(k) ||
+    /(^|_)(mutton|beef|chicken|broiler|sonali|hen|duck)($|_)/.test(k)
+  ) {
     return "fish_meat";
   }
 
@@ -533,12 +558,10 @@ export function getProductCategory(key = "") {
     return "pulses";
   }
 
-  if (/(potato|onion|brinjal|tomato|cabbage|cauliflower|carrot|radish|gourd|bean|okra|spinach|chili|chilli|garlic|ginger|cucumber|papaya|green_banana|danta|dhundol|jhinga|kakroll|karalla|kochur|mukhi|turnip|celeriac|malabar|red_spinach|palongsak|puisak|water_gourd|bottle_gourd|snakegourd|bitter_gourd|yardlong|aroid|cachue)/.test(k)) {
+  if (
+    /(potato|onion|brinjal|tomato|cabbage|cauliflower|carrot|radish|gourd|bean|okra|spinach|chili|chilli|garlic|ginger|cucumber|papaya|green_banana|danta|dhundol|jhinga|kakroll|karalla|kochur|mukhi|turnip|celeriac|malabar|red_spinach|palongsak|puisak|water_gourd|bottle_gourd|snakegourd|bitter_gourd|yardlong|aroid|cachue)/.test(k)
+  ) {
     return "vegetables";
-  }
-
-  if (/(apple|banana|mango|orange|guava|grapes|watermelon|pineapple|jackfruit|dragon|coconut|amalki|khejur|date|lemon)/.test(k)) {
-    return "fruits";
   }
 
   return "other";
