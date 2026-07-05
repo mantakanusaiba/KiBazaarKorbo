@@ -21,8 +21,6 @@ function StatCard({ label, value, icon, tone = "var(--brand-700)" }) {
                     <div className="stat-label">{label}</div>
                     <div className="stat-value" style={{ color: tone }}>{value}</div>
                 </div>
-
-
             </div>
         </div>
     );
@@ -57,27 +55,67 @@ function priceValue(item) {
 const UNIT_LABELS_BN = {
     kg: "কেজি",
     kgs: "কেজি",
+    kilogram: "কেজি",
+    kilograms: "কেজি",
+
     gram: "গ্রাম",
+    grams: "গ্রাম",
+    gm: "গ্রাম",
     g: "গ্রাম",
+
     liter: "লিটার",
+    liters: "লিটার",
     litre: "লিটার",
-    L: "লিটার",
-    L: "লিটার",
+    litres: "লিটার",
+    l: "লিটার",
+
     dozen: "ডজন",
+    dz: "ডজন",
+
     piece: "পিস",
+    pieces: "পিস",
     pcs: "পিস",
     pc: "পিস",
 };
 
+function toBanglaDigits(value = "") {
+    return String(value).replace(/[0-9]/g, (digit) => "০১২৩৪৫৬৭৮৯"[Number(digit)]);
+}
+
 function formatUnit(unit) {
     if (!unit) return "কেজি";
 
-    const key = String(unit).trim().toLowerCase();
-    return UNIT_LABELS_BN[key] || unit;
+    const raw = String(unit).trim();
+    const key = raw.toLowerCase().replace(/\s+/g, "");
+
+    const literMatch = key.match(/^(\d+(?:\.\d+)?)(l|liter|litre|liters|litres)$/);
+    if (literMatch) {
+        return `${toBanglaDigits(literMatch[1])} লিটার`;
+    }
+
+    const gramMatch = key.match(/^(\d+(?:\.\d+)?)(g|gm|gram|grams)$/);
+    if (gramMatch) {
+        return `${toBanglaDigits(gramMatch[1])} গ্রাম`;
+    }
+
+    const kgMatch = key.match(/^(\d+(?:\.\d+)?)(kg|kgs|kilogram|kilograms)$/);
+    if (kgMatch) {
+        return `${toBanglaDigits(kgMatch[1])} কেজি`;
+    }
+
+    const pieceMatch = key.match(/^(\d+(?:\.\d+)?)(pc|pcs|piece|pieces)$/);
+    if (pieceMatch) {
+        return `${toBanglaDigits(pieceMatch[1])} পিস`;
+    }
+
+    const dozenMatch = key.match(/^(\d+(?:\.\d+)?)(dozen|dz)$/);
+    if (dozenMatch) {
+        return `${toBanglaDigits(dozenMatch[1])} ডজন`;
+    }
+
+    return UNIT_LABELS_BN[key] || toBanglaDigits(raw);
 }
 
-// Simple trend proxy computed from existing min/max/avg fields.
-// (Swap this out once /prices/today returns real forecast/trend data.)
 function computeTrend(item) {
     const min = Number(item.min_price) || 0;
     const max = Number(item.max_price) || 0;
@@ -103,22 +141,22 @@ function HeroProductCard({ item }) {
             icon: "⬆",
             color: "#b91c1c",
             background: "#fee2e2",
-            text: `গতকালের তুলনায় ${percent}% বেশি`,
+            text: `গতকালের তুলনায় ${bnNum(percent)}% বেশি`,
             tip: "💡 একটু অপেক্ষা করে কেনা ভালো",
         },
         down: {
             icon: "⬇",
             color: "var(--hero-success)",
             background: "var(--hero-success-bg)",
-            text: `গতকালের তুলনায় ${percent}% কম`,
-            tip: "💡 এখন কিনলে ভালো সময়",
+            text: `গতকালের তুলনায় ${bnNum(percent)}% কম`,
+            tip: "💡 এখন কিনলে ভালো সময়",
         },
         stable: {
             icon: "➡",
             color: "var(--hero-text)",
             background: "var(--hero-bg-soft)",
             text: "দাম স্থিতিশীল",
-            tip: "💡 যেকোনো সময় কিনতে পারেন",
+            tip: "💡 যেকোনো সময় কিনতে পারেন",
         },
     }[trend.type];
 
@@ -262,7 +300,7 @@ export default function Dashboard() {
     useEffect(() => {
         getPricesToday()
             .then((r) => setPrices(r.data || []))
-            .catch(() => setError("দামের ডাটা লোড করা যায়নি। সার্ভার চালু আছে কি না দেখুন।"))
+            .catch(() => setError("দামের ডাটা লোড করা যায়নি। সার্ভার চালু আছে কি না দেখুন।"))
             .finally(() => setLoading(false));
     }, []);
 
@@ -309,6 +347,7 @@ export default function Dashboard() {
                     avg_price: Number(p.avg_price) || 0,
                     min_price: Number(p.min_price) || 0,
                     max_price: Number(p.max_price) || 0,
+                    unit: p.unit,
                     count: 1,
                 };
             } else {
@@ -321,6 +360,11 @@ export default function Dashboard() {
                     byProduct[key].max_price,
                     Number(p.max_price) || byProduct[key].max_price
                 );
+
+                if (!byProduct[key].unit && p.unit) {
+                    byProduct[key].unit = p.unit;
+                }
+
                 byProduct[key].count++;
             }
         });
@@ -332,7 +376,6 @@ export default function Dashboard() {
         }));
     }, [prices, marketKey, divisionMarketKeys]);
 
-    // Products cycled through the hero spotlight carousel
     const heroSlides = useMemo(() => {
         return aggregatedItems
             .filter((item) => priceValue(item) > 0)
@@ -340,14 +383,12 @@ export default function Dashboard() {
             .slice(0, 8);
     }, [aggregatedItems]);
 
-    // Keep currentSlide in range whenever the slide list changes
     useEffect(() => {
         if (currentSlide >= heroSlides.length) {
             setCurrentSlide(0);
         }
     }, [heroSlides, currentSlide]);
 
-    // Auto-advance every 1.5 seconds
     useEffect(() => {
         if (heroSlides.length <= 1) return;
 
@@ -418,7 +459,6 @@ export default function Dashboard() {
 
     return (
         <div className="page-enter">
-
             <section
                 className="page-hero"
                 style={{
@@ -427,11 +467,8 @@ export default function Dashboard() {
                     gap: 26,
                     alignItems: "center",
                 }}
-
             >
                 <div>
-
-
                     <h1 className="page-title">বাংলাদেশের বাজার দাম দেখে স্মার্টভাবে কেনাকাটা করুন।</h1>
 
                     <p className="page-subtitle">
@@ -493,7 +530,7 @@ export default function Dashboard() {
                         className="mm-input"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
-                        placeholder="যেমন: চাল, ডিম, পেঁয়াজ, মুরগি..."
+                        placeholder="যেমন: চাল, ডিম, পেঁয়াজ, মুরগি..."
                     />
                 </label>
 
@@ -527,7 +564,7 @@ export default function Dashboard() {
 
             <div className="section-head">
                 <div>
-                    <h2 className="section-title">ক্যাটাগরি দিয়ে দেখুন</h2>
+                    <h2 className="section-title">ক্যাটাগরি দিয়ে দেখুন</h2>
                     <p className="section-note">
                         পণ্য খোঁজা, বিভাগ ও বাজার ফিল্টারের সাথে এই ক্যাটাগরি ফিল্টার একসাথে কাজ করবে।
                     </p>
@@ -565,7 +602,7 @@ export default function Dashboard() {
 
             {items.length === 0 ? (
                 <div className="empty-state">
-                    এই খোঁজা/ফিল্টারে কোনো পণ্য পাওয়া যায়নি। অন্য ক্যাটাগরি বা বাজার দিয়ে চেষ্টা করুন।
+                    এই খোঁজা/ফিল্টারে কোনো পণ্য পাওয়া যায়নি। অন্য ক্যাটাগরি বা বাজার দিয়ে চেষ্টা করুন।
                 </div>
             ) : (
                 <div className="product-grid">
