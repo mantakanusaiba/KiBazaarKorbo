@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
+import logo from "../logo.png";
 
 const LINKS = [
     { to: "/", label: "হোম" },
@@ -34,18 +35,30 @@ export default function Navbar() {
                 gap: 14,
             }}>
                 <NavLink to="/" style={{ display: "flex", alignItems: "center", gap: 10, marginRight: 4 }}>
-                    <div style={{
-                        width: 42,
-                        height: 42,
-                        borderRadius: 16,
-                        display: "grid",
-                        placeItems: "center",
-                        background: "linear-gradient(135deg, var(--hero-heading), var(--hero-primary))",
-                        color: "white",
-                        fontSize: 21,
-                        boxShadow: "0 14px 30px rgba(109, 182, 76, 0.28)",
-                    }}>
-                        🧺
+                    <div
+                        style={{
+                            width: 50,
+                            height: 50,
+                            borderRadius: "50%",
+                            border: "1px solid var(--lemon-border)",
+                            overflow: "hidden",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            background: "#fff",
+                            boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
+                            flexShrink: 0,
+                        }}
+                    >
+                        <img
+                            src={logo}
+                            alt="কি বাজার করবো?"
+                            style={{
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
+                            }}
+                        />
                     </div>
                     <div style={{ lineHeight: 1 }}>
                         <div style={{
@@ -53,13 +66,11 @@ export default function Navbar() {
                             fontWeight: 950,
                             color: "var(--hero-heading)",
                             letterSpacing: "-0.6px",
-                            fontSize: 20,
+                            fontSize: 22,
                         }}>
                             কি বাজার করবো?
                         </div>
-                        <div style={{ fontSize: 10.5, color: "var(--gray-500)", fontWeight: 900, letterSpacing: "0.8px", textTransform: "uppercase" }}>
-                            AI বাজার সহকারী
-                        </div>
+
                     </div>
                 </NavLink>
 
