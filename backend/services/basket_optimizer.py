@@ -27,9 +27,9 @@ from services.data_service import get_market_comparison
 from services.model_service import predict_tomorrow
 
 
-def _timing_advice(product: str) -> dict:
+def _timing_advice(product: str, market: str) -> dict:
     try:
-        forecast = predict_tomorrow(product)
+        forecast = predict_tomorrow(product, market)
     except Exception:
         # Model file missing/unreadable, etc. Degrade gracefully rather
         # than failing the whole basket optimization for one bad product.
@@ -57,10 +57,18 @@ def _timing_advice(product: str) -> dict:
     }
 
 
-def optimize_basket(items: list[dict]) -> dict:
+def optimize_basket(items: list[dict], markets: list[str] | None = None) -> dict:
     """
     items: [{"product": "onion", "qty": 2}, ...]
+    markets: optional allow-list of market keys (e.g. the markets belonging
+        to a single division). When given, every comparison — per-item
+        cheapest market, best single market, and the full ranking — is
+        restricted to this set, so "best market" reflects markets the user
+        can actually get to rather than the cheapest market nationwide.
+        None/empty means no restriction (all markets considered).
     """
+    market_filter = set(markets) if markets else None
+
     per_item = []
     market_totals: dict[str, float] = {}
     market_coverage: dict[str, int] = {}
@@ -73,6 +81,8 @@ def optimize_basket(items: list[dict]) -> dict:
         qty = float(entry.get("qty", 1))
 
         rows = get_market_comparison(product)
+        if market_filter is not None:
+            rows = [r for r in rows if r["market"] in market_filter]
         if not rows:
             unresolved.append(product)
             continue
@@ -84,7 +94,7 @@ def optimize_basket(items: list[dict]) -> dict:
         naive_total += avg_of_markets * qty
         multi_market_total += cheapest["avg_price"] * qty
 
-        timing = _timing_advice(product)
+        timing = _timing_advice(product, cheapest["market"])
 
         per_item.append({
             "product": product,
@@ -130,11 +140,37 @@ def optimize_basket(items: list[dict]) -> dict:
         if best_single_market else 0
     )
 
+    # Full ranked market list — same numbers used to pick best_single_market
+    # above, just exposed in full instead of only the winner. Markets that
+    # cover every item in the basket are ranked first (cheapest total
+    # first); partial-coverage markets are listed after, most-complete
+    # first. Nothing new is computed here — market_totals/market_coverage
+    # already existed, this just returns them shaped for display.
+    ranked_markets = []
+    for m, total in market_totals.items():
+        covers_all = market_coverage.get(m) == n_items
+        ranked_markets.append({
+            "market": m,
+            "total": round(total, 2),
+            "covers_all_items": covers_all,
+            "covers_n_of": [market_coverage[m], n_items],
+        })
+    # Full-coverage markets first. If no market covers every selected item,
+    # show the most useful partial markets first: higher coverage, then lower total.
+    ranked_markets.sort(
+        key=lambda r: (
+            not r["covers_all_items"],
+            -r["covers_n_of"][0],
+            r["total"],
+        )
+    )
+
     return {
         "items": per_item,
         "unresolved_products": unresolved,
         "multi_market_total": round(multi_market_total, 2),
         "best_single_market": best_single_market,
+        "market_ranking": ranked_markets,
         "naive_avg_total": round(naive_total, 2),
         "savings_vs_shopping_blind": savings_vs_naive,
         "savings_of_multi_over_single": savings_vs_single,

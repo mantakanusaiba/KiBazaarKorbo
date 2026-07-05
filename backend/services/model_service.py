@@ -11,6 +11,26 @@ MODEL_PATH = os.getenv("MODEL_PATH", "ml/models/price_models.pkl")
 
 VALID_HORIZONS = (5, 7)
 
+# build_features()/build_weather_climatology() both scan the FULL price
+# history (every product, every market) — they don't take `product`/
+# `market` as filters. predict_range() used to call them fresh on every
+# single invocation, so a basket with N items (the basket optimizer calls
+# predict_tomorrow once per item) redid this same whole-dataset work N
+# times per request, adding real latency on top of the LLM call. Caching
+# by the underlying dataframe's id() means it's rebuilt only when
+# load_data() actually re-reads the CSV (mtime change), not on every
+# forecast call.
+_feature_cache: dict = {"key": None, "df_feat": None, "clim": None}
+
+
+def _get_engineered(df: pd.DataFrame):
+    key = id(df)
+    if _feature_cache["key"] != key:
+        _feature_cache["key"] = key
+        _feature_cache["df_feat"] = build_features(df)
+        _feature_cache["clim"] = build_weather_climatology(df)
+    return _feature_cache["df_feat"], _feature_cache["clim"]
+
 # Models are trained with objective="reg:quantileerror",
 # quantile_alpha=[0.1, 0.5, 0.9] (see ml/train.py), so a single model's
 # .predict() returns a (1, 3) array: [P10, P50, P90] instead of one
@@ -41,6 +61,28 @@ def load_models() -> dict:
         return pickle.load(f)
 
 
+def get_available_products() -> list[str]:
+    """Products the frontend is allowed to offer anywhere (dropdowns,
+    dashboard listings, etc.).
+
+    Keep every product that has AT LEAST ONE working horizon model,
+    however many horizons it has. A product is excluded only when it
+    has ZERO working horizons — i.e. it never made it into
+    price_models.pkl at all, because every single horizon failed QA
+    and ml/train.py deleted it from the models dict entirely (see
+    remove_product()/REMOVED_OUT in ml/train.py).
+
+    This deliberately does NOT require horizons 1-5 to all be present.
+    predict_range() already handles a product with fewer horizons
+    gracefully — it just returns however many days it has (see
+    horizons_to_use in predict_range) instead of erroring out. So a
+    product with only 1-3 working horizons still gives a useful partial
+    forecast and should stay visible, not just ones with a full 5-day
+    forecast.
+    """
+    return sorted(load_models().keys())
+
+
 def predict_tomorrow(product: str, market: str | None = None) -> dict:
     """Kept for backward compatibility with the old single-day endpoint.
     Internally just calls predict_range for 1 day."""
@@ -60,6 +102,13 @@ def predict_tomorrow(product: str, market: str | None = None) -> dict:
             "decrease" if day1["change_pct"] < -2 else "stable"
         ),
         "top_factors": day1["top_factors"],
+
+        # Expose the deterministic future context so the AI explanation can
+        # discuss weather + festival/weekend impact on the forecast page.
+        "is_weekend": day1.get("is_weekend", False),
+        "is_festival": day1.get("is_festival", False),
+        "rainfall_mm": day1.get("rainfall_mm"),
+        "temp_avg_c": day1.get("temp_avg_c"),
     }
 
 
@@ -89,8 +138,7 @@ def predict_range(product: str, market: str, days: int = 7) -> dict:
     if market not in df["market"].unique():
         return {"error": f"Unknown market '{market}'"}
 
-    df_feat = build_features(df)
-    clim = build_weather_climatology(df)
+    df_feat, clim = _get_engineered(df)
 
     hist = df_feat[
         (df_feat["standard_key"] == product) & (df_feat["market"] == market)
@@ -155,7 +203,7 @@ def predict_range(product: str, market: str, days: int = 7) -> dict:
             "is_festival": bool(is_festival_bd(target_date)),
             "rainfall_mm": round(rainfall, 1),
             "temp_avg_c": round(temp, 1),
-            "top_factors": compute_top_factors(model, row),
+            "top_factors": compute_top_factors(model, row) if h == horizons_to_use[0] else [],
         })
 
     return {

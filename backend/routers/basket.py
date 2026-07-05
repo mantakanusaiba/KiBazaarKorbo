@@ -13,12 +13,16 @@ class BasketItem(BaseModel):
 
 class BasketRequest(BaseModel):
     items: list[BasketItem]
+    # Optional allow-list of market keys (e.g. all markets in the user's
+    # selected division). When omitted, every market nationwide is
+    # considered, same as before.
+    markets: list[str] | None = None
 
 
 @router.post("/basket/optimize")
 def optimize(payload: BasketRequest):
     items = [item.model_dump() for item in payload.items]
-    plan = optimize_basket(items)
+    plan = optimize_basket(items, markets=payload.markets)
 
     if plan["items"]:
         try:

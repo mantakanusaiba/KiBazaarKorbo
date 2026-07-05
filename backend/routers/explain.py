@@ -6,6 +6,7 @@ from services.data_service import get_default_market
 
 router = APIRouter(tags=["explain"])
 
+
 @router.get("/explain/{product}")
 def explain(product: str):
     market = get_default_market(product)
@@ -24,11 +25,17 @@ def explain(product: str):
         predicted_price=forecast["predicted_tomorrow"],
         direction=forecast["direction"],
         advice=advice["advice"],
+        market=forecast.get("market"),
+        change_pct=forecast.get("change_pct"),
+        is_festival=forecast.get("is_festival", False),
+        is_weekend=forecast.get("is_weekend", False),
+        rainfall_mm=forecast.get("rainfall_mm"),
+        temp_avg_c=forecast.get("temp_avg_c"),
         top_factors=forecast.get("top_factors"),
     )
 
     return {
         **forecast,
         **advice,
-        "explanation": explanation
+        "explanation": explanation,
     }

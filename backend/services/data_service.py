@@ -13,6 +13,44 @@ CSV_PATH = os.getenv("CSV_PATH", os.path.join(_BASE_DIR, "data", "processed", "m
 
 _cache: dict = {"df": None, "mtime": None}
 
+# The DAM API's `unit` column is a numeric measurement-unit code, not a
+# human-readable string (e.g. 2 -> "Kilogram", 3 -> "Liter"). Left
+# untranslated, the frontend was displaying raw codes like "/ 2" instead
+# of "/ kg". Mapping sourced from data/dam_dropdowns.json -> measurementUnitList.
+UNIT_LABELS = {
+    1: "quintal",
+    2: "kg",
+    3: "litre",
+    4: "piece",
+    5: "4 pcs",
+    6: "48 pcs",
+    7: "80 pcs",
+    8: "100 pcs",
+    9: "1000 pcs",
+    10: "10g",
+    11: "2kg",
+    12: "12kg",
+    13: "100L",
+    14: "11.66g",
+    15: "50kg bag",
+    16: "gadi (6400 leaves)",
+    17: "bira (80 leaves)",
+    18: "kg",
+    19: "1000L",
+    20: "5L",
+}
+
+
+def _label_unit(code) -> str:
+    """Translate a DAM numeric unit code to a short display label.
+    Falls back to the raw value (stringified) for any unrecognized code
+    instead of silently hiding it, so new/unmapped codes are still visible
+    rather than defaulting to a misleading "kg"."""
+    try:
+        return UNIT_LABELS[int(code)]
+    except (TypeError, ValueError, KeyError):
+        return str(code) if code is not None and not (isinstance(code, float) and math.isnan(code)) else "unit"
+
 def load_data() -> pd.DataFrame:
     """
     Loads the CSV into memory, but re-reads it whenever the file's
@@ -47,7 +85,10 @@ def get_latest_prices() -> list[dict]:
     df = load_data()
     latest_date = df["date"].max()
     latest = df[df["date"] == latest_date]
-    return _sanitize(latest.to_dict(orient="records"))
+    records = _sanitize(latest.to_dict(orient="records"))
+    for record in records:
+        record["unit"] = _label_unit(record.get("unit"))
+    return records
 
 def get_price_history(product: str, days: int = 90) -> list[dict]:
     df = load_data()
@@ -62,11 +103,21 @@ def get_price_history(product: str, days: int = 90) -> list[dict]:
     return _sanitize(sub.round(2).to_dict(orient="records"))
 
 def get_market_comparison(product: str) -> list[dict]:
+    """Latest available market comparison for ONE product.
+
+    DAM may not publish every product/market on the global latest date
+    (weekends, holidays, partial updates). So this uses the latest row per
+    market for the requested product instead of filtering the whole dataset
+    to one global date.
+    """
     df = load_data()
-    latest_date = df["date"].max()
-    sub = df[(df["standard_key"] == product) & (df["date"] == latest_date)]
+    sub = df[df["standard_key"] == product].copy()
+    if sub.empty:
+        return []
+    latest_per_market = sub.groupby("market")["date"].transform("max")
+    sub = sub[sub["date"] == latest_per_market]
     sub = sub[["market", "min_price", "max_price", "avg_price"]]
-    return _sanitize(sub.to_dict(orient="records"))
+    return _sanitize(sub.round(2).to_dict(orient="records"))
 
 def get_products() -> list[str]:
     df = load_data()
@@ -89,3 +140,21 @@ def refresh_data() -> dict:
     _cache["mtime"] = None
 
     return {"status": "ok", "rows_fetched": rows_fetched}
+
+def get_default_market(product: str) -> str | None:
+    """Pick the freshest available market for a product.
+
+    This avoids forecasting from a stale market when another market has a
+    newer DAM row for the same product. Ties are broken by historical row
+    count, so the default still prefers a well-covered market.
+    """
+    df = load_data()
+    sub = df[df["standard_key"] == product]
+    if sub.empty:
+        return None
+    latest_date = sub["date"].max()
+    latest_markets = sub[sub["date"] == latest_date]["market"].dropna().unique()
+    if len(latest_markets) == 0:
+        return None
+    counts = sub[sub["market"].isin(latest_markets)]["market"].value_counts()
+    return counts.idxmax()
