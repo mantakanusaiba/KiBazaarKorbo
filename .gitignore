@@ -4,6 +4,7 @@ __pycache__/
 *.pyo
 venv/
 .env
+.venv/
 
 # ML models (too large for git — use git-lfs or upload manually)
 backend/ml/models/*.pkl
