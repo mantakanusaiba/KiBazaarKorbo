@@ -519,31 +519,29 @@ export default function Dashboard() {
                 : "বাংলাদেশের সব বাজার";
 
     if (loading) {
-        return (
-            <div className="page-enter">
-                <div
-                    className="glass-card"
-                    style={{
-                        padding: 40,
-                        borderRadius: 30,
-                        textAlign: "center",
-                        marginTop: 40,
-                        minHeight: 220,
-                        display: "grid",
-                        placeItems: "center",
-                    }}
-                >
-                    <div>
-                        <h2 className="section-title">ড্যাশবোর্ড লোড হচ্ছে...</h2>
-                        <p className="section-note">
-                            Hugging Face backend জেগে উঠতে একটু সময় লাগতে পারে। অনুগ্রহ করে অপেক্ষা করুন।
-                        </p>
-                    </div>
+    return (
+        <div className="page-enter">
+            <div className="dashboard-loader-card glass-card">
+                <div className="dashboard-loader-logo">
+                    <div className="dashboard-loader-ring"></div>
+                    <div className="dashboard-loader-core">কি?</div>
+                </div>
+
+                <h2 className="section-title">ড্যাশবোর্ড লোড হচ্ছে...</h2>
+
+                <p className="section-note dashboard-loader-text">
+                    সিস্টেমটি সম্পূর্ণভাবে সচল হতে কিছুটা সময় লাগছে। অনুগ্রহ করে অপেক্ষা করুন।
+                </p>
+
+                <div className="dashboard-loader-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
                 </div>
             </div>
-        );
-    }
-
+        </div>
+    );
+}
     if (error) {
         return (
             <div className="page-enter">

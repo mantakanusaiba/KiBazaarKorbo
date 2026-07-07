@@ -5,7 +5,7 @@ import logo from "../logo.png";
 const LINKS = [
     { to: "/", label: "হোম" },
     { to: "/search", label: "পণ্য খুঁজুন" },
-    { to: "/forecast", label: "দাম ফোরকাস্ট" },
+    { to: "/forecast", label: "ফোরকাস্ট" },
     { to: "/fair-price", label: "ঠিক দাম?" },
     { to: "/markets", label: "বাজার তুলনা" },
     { to: "/basket", label: "বাজার লিস্ট" },
@@ -16,152 +16,60 @@ export default function Navbar() {
     const [open, setOpen] = useState(false);
 
     return (
-        <header style={{
-            position: "sticky",
-            top: 0,
-            zIndex: 100,
-            background: "rgba(245, 250, 239, 0.86)",
-            backdropFilter: "blur(22px)",
-            borderBottom: "1px solid var(--lemon-border)",
-            boxShadow: "0 10px 30px rgba(47, 93, 40, 0.08)",
-        }}>
-            <div style={{
-                maxWidth: 1220,
-                margin: "0 auto",
-                padding: "0 20px",
-                display: "flex",
-                alignItems: "center",
-                minHeight: 72,
-                gap: 14,
-            }}>
-                <NavLink to="/" style={{ display: "flex", alignItems: "center", gap: 10, marginRight: 4 }}>
-                    <div
-                        style={{
-                            width: 50,
-                            height: 50,
-                            borderRadius: "50%",
-                            border: "1px solid var(--lemon-border)",
-                            overflow: "hidden",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            background: "#fff",
-                            boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
-                            flexShrink: 0,
-                        }}
-                    >
-                        <img
-                            src={logo}
-                            alt="কি বাজার করবো?"
-                            style={{
-                                width: "100%",
-                                height: "100%",
-                                objectFit: "cover",
-                            }}
-                        />
+        <header className="app-header">
+            <div className="nav-inner">
+                <NavLink to="/" className="brand-link" onClick={() => setOpen(false)}>
+                    <div className="brand-logo">
+                        <img src={logo} alt="কি বাজার করবো?" />
                     </div>
-                    <div style={{ lineHeight: 1 }}>
-                        <div style={{
-                            fontFamily: "var(--font-display)",
-                            fontWeight: 950,
-                            color: "var(--hero-heading)",
-                            letterSpacing: "-0.6px",
-                            fontSize: 22,
-                        }}>
-                            কি বাজার করবো?
-                        </div>
 
-                    </div>
+                    <div className="brand-title">কি বাজার করবো?</div>
                 </NavLink>
 
-                <nav className="desktop-nav" style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "flex-end",
-                    gap: 5,
-                    flex: 1,
-                }}>
-                    {LINKS.map((l) => (
+                <nav className="desktop-nav">
+                    {LINKS.map((link) => (
                         <NavLink
-                            key={l.to}
-                            to={l.to}
-                            end={l.to === "/"}
-                            style={({ isActive }) => ({
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: 6,
-                                color: isActive ? "white" : "var(--gray-600)",
-                                background: isActive ? "linear-gradient(135deg, var(--hero-heading), var(--hero-primary))" : "transparent",
-                                boxShadow: isActive ? "0 12px 24px rgba(109, 182, 76, 0.20)" : "none",
-                                fontWeight: 850,
-                                fontSize: 15,
-                                padding: "9px 11px",
-                                borderRadius: 999,
-                                transition: "all 0.16s ease",
-                                whiteSpace: "nowrap",
-                            })}
+                            key={link.to}
+                            to={link.to}
+                            end={link.to === "/"}
+                            className={({ isActive }) =>
+                                `nav-link ${isActive ? "active" : ""}`
+                            }
                         >
-                            <span>{l.icon}</span>
-                            {l.label}
+                            {link.label}
                         </NavLink>
                     ))}
                 </nav>
 
                 <button
                     className="hamburger"
-                    onClick={() => setOpen((o) => !o)}
-                    aria-label="মেনু খুলুন"
-                    style={{
-                        marginLeft: "auto",
-                        width: 42,
-                        height: 42,
-                        borderRadius: 14,
-                        border: "1px solid var(--lemon-border)",
-                        background: "white",
-                        color: "var(--hero-heading)",
-                        fontSize: 20,
-                        display: "none",
-                        alignItems: "center",
-                        justifyContent: "center",
-                    }}
+                    type="button"
+                    onClick={() => setOpen((prev) => !prev)}
+                    aria-label="মেনু"
                 >
                     {open ? "✕" : "☰"}
                 </button>
             </div>
 
             {open && (
-                <div style={{ maxWidth: 1220, margin: "0 auto", padding: "0 20px 18px" }}>
-                    <div className="glass-card" style={{ padding: 8, display: "grid", gap: 4 }}>
-                        {LINKS.map((l) => (
+                <div className="mobile-nav-wrap">
+                    <nav className="mobile-nav-card">
+                        {LINKS.map((link) => (
                             <NavLink
-                                key={l.to}
-                                to={l.to}
-                                end={l.to === "/"}
+                                key={link.to}
+                                to={link.to}
+                                end={link.to === "/"}
                                 onClick={() => setOpen(false)}
-                                style={({ isActive }) => ({
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 10,
-                                    padding: "12px 13px",
-                                    borderRadius: 14,
-                                    color: isActive ? "white" : "var(--gray-700)",
-                                    background: isActive ? "linear-gradient(135deg, var(--hero-heading), var(--hero-primary))" : "transparent",
-                                    fontWeight: 850,
-                                })}
+                                className={({ isActive }) =>
+                                    `mobile-nav-link ${isActive ? "active" : ""}`
+                                }
                             >
-                                <span>{l.icon}</span>{l.label}
+                                {link.label}
                             </NavLink>
                         ))}
-                    </div>
+                    </nav>
                 </div>
             )}
-
-            <style>{`
-                @media (max-width: 920px) {
-                    .desktop-nav { display: none !important; }
-                    .hamburger { display: flex !important; }
-                }
-            `}</style>
         </header>
     );
 }

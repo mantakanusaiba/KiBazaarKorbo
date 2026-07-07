@@ -51,7 +51,7 @@ export default function PriceCard({
 
                         <div className="price-live-text">
                             <span className="mini-live-dot" />
-                            বাজারের নতুন ডাটা থেকে আপডেট
+                            
                         </div>
                     </div>
                 </div>
