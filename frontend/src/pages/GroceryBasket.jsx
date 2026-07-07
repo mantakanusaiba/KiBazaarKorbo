@@ -21,8 +21,16 @@ const DIVISION_STORAGE_KEY = "mm_basket_division";
 
 const UNIT_STEP = {
     kg: 0.5,
+    kgs: 0.5,
+    kilogram: 0.5,
     litre: 0.5,
+    liter: 0.5,
+    l: 0.5,
     piece: 1,
+    pieces: 1,
+    pc: 1,
+    pcs: 1,
+    dozen: 1,
     default: 1,
 };
 
@@ -59,6 +67,24 @@ function saveDivision(divisionId) {
     }
 }
 
+function normalizeProducts(data) {
+    if (!Array.isArray(data)) return [];
+
+    return data
+        .map((item) => {
+            if (typeof item === "string") return item;
+            return item?.standard_key || item?.key || item?.product_key || item?.product;
+        })
+        .filter(Boolean);
+}
+
+function normalizePriceRows(data) {
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.data)) return data.data;
+    if (Array.isArray(data?.items)) return data.items;
+    return [];
+}
+
 function buildPriceMap(rows, markets) {
     const allowedMarkets = markets?.length ? new Set(markets) : null;
     const byProduct = {};
@@ -68,17 +94,24 @@ function buildPriceMap(rows, markets) {
         if (allowedMarkets && !allowedMarkets.has(p.market)) return;
 
         const key = p.standard_key;
+        const avg = Number(p.avg_price);
+
+        if (!Number.isFinite(avg) || avg <= 0) return;
 
         if (!byProduct[key]) {
             byProduct[key] = {
-                total: Number(p.avg_price),
+                total: avg,
                 count: 1,
                 unit: p.unit,
                 product_en: formatProductName(key),
             };
         } else {
-            byProduct[key].total += Number(p.avg_price);
+            byProduct[key].total += avg;
             byProduct[key].count += 1;
+
+            if (!byProduct[key].unit && p.unit) {
+                byProduct[key].unit = p.unit;
+            }
         }
     });
 
@@ -112,16 +145,56 @@ export default function GroceryBasket() {
     const resultRef = useRef(null);
 
     useEffect(() => {
+        let alive = true;
+
         setBasket(loadBasket());
         setDivisionId(loadDivision());
+        setLoading(true);
+        setError(null);
 
-        Promise.all([getProducts(), getPricesToday()])
+        Promise.allSettled([getProducts(), getPricesToday()])
             .then(([prodRes, priceRes]) => {
-                setProducts(prodRes.data || []);
-                setPriceRows(priceRes.data || []);
+                if (!alive) return;
+
+                const productRows =
+                    prodRes.status === "fulfilled"
+                        ? normalizeProducts(prodRes.value.data)
+                        : [];
+
+                const priceRowsData =
+                    priceRes.status === "fulfilled"
+                        ? normalizePriceRows(priceRes.value.data)
+                        : [];
+
+                console.log("Basket products loaded:", productRows.length);
+                console.log("Basket prices loaded:", priceRowsData.length);
+                console.log("First basket price row:", priceRowsData[0]);
+
+                setProducts(productRows);
+                setPriceRows(priceRowsData);
+
+                if (priceRowsData.length === 0) {
+                    setError(
+                        "বাজার লিস্টের দামের ডাটা লোড হয়নি। Backend জেগে উঠতে সময় নিতে পারে। পেজ রিফ্রেশ করে আবার চেষ্টা করুন।"
+                    );
+                }
             })
-            .catch(() => setError("দামের ডাটা লোড করা যায়নি। সার্ভার চালু আছে কি না দেখুন।"))
-            .finally(() => setLoading(false));
+            .catch((err) => {
+                console.error("Basket load failed:", err);
+
+                if (alive) {
+                    setError(`দামের ডাটা লোড করা যায়নি। Error: ${err?.message || "unknown"}`);
+                }
+            })
+            .finally(() => {
+                if (alive) {
+                    setLoading(false);
+                }
+            });
+
+        return () => {
+            alive = false;
+        };
     }, []);
 
     useEffect(() => {
@@ -149,7 +222,10 @@ export default function GroceryBasket() {
         setPlan(null);
     };
 
-    const step = (unit) => UNIT_STEP[unit] || UNIT_STEP.default;
+    const step = (unit) => {
+        const key = String(unit || "").toLowerCase().trim();
+        return UNIT_STEP[key] || UNIT_STEP.default;
+    };
 
     const clearBasket = () => {
         setBasket({});
@@ -177,10 +253,18 @@ export default function GroceryBasket() {
         [priceRows, marketsForDivision]
     );
 
-    const availableProducts = useMemo(
-        () => products.filter((key) => prices[key]),
-        [products, prices]
-    );
+    const availableProducts = useMemo(() => {
+        const priceKeys = Object.keys(prices);
+
+        if (products.length === 0) {
+            return priceKeys;
+        }
+
+        const productSet = new Set(products);
+        const matched = priceKeys.filter((key) => productSet.has(key));
+
+        return matched.length > 0 ? matched : priceKeys;
+    }, [products, prices]);
 
     const visibleProducts = useMemo(() => {
         return availableProducts
@@ -223,7 +307,7 @@ export default function GroceryBasket() {
             };
         });
 
-    const hiddenBasketCount = Object.keys(basket).length - items.length;
+    const hiddenBasketCount = Math.max(Object.keys(basket).length - items.length, 0);
 
     const total = items.reduce((sum, i) => sum + i.lineTotal, 0);
 
@@ -240,8 +324,21 @@ export default function GroceryBasket() {
         setPlan(null);
 
         optimizeBasket(payload, marketsForDivision)
-            .then((res) => setPlan(res.data))
-            .catch(() => setPlanError("সেরা বাজার প্ল্যান বের করা যায়নি। আবার চেষ্টা করুন।"))
+            .then((res) => {
+                console.log("Basket plan:", res.data);
+                setPlan(res.data);
+            })
+            .catch((err) => {
+                console.error("Basket optimizer failed:", err);
+
+                const msg =
+                    err?.response?.data?.detail ||
+                    err?.response?.data?.message ||
+                    err?.message ||
+                    "unknown";
+
+                setPlanError(`সেরা বাজার প্ল্যান বের করা যায়নি। Error: ${msg}`);
+            })
             .finally(() => setPlanLoading(false));
     };
 
@@ -249,26 +346,23 @@ export default function GroceryBasket() {
         return (
             <div className="page-enter">
                 <div
-                    className="skeleton"
+                    className="glass-card"
                     style={{
-                        height: 240,
-                        borderRadius: 34,
-                        marginBottom: 20,
+                        padding: 40,
+                        borderRadius: 30,
+                        textAlign: "center",
+                        marginTop: 40,
+                        minHeight: 220,
+                        display: "grid",
+                        placeItems: "center",
                     }}
-                />
-
-                <div className="basket-product-grid">
-                    {Array.from({ length: 10 }).map((_, i) => (
-                        <div
-                            key={i}
-                            className="skeleton"
-                            style={{
-                                height: 166,
-                                borderRadius: 20,
-
-                            }}
-                        />
-                    ))}
+                >
+                    <div>
+                        <h2 className="section-title">বাজার লিস্ট লোড হচ্ছে...</h2>
+                        <p className="section-note">
+                            Hugging Face backend জেগে উঠতে একটু সময় লাগতে পারে। অনুগ্রহ করে অপেক্ষা করুন।
+                        </p>
+                    </div>
                 </div>
             </div>
         );
@@ -276,10 +370,17 @@ export default function GroceryBasket() {
 
     if (error) {
         return (
-            <div className="alert-error">
-                <b>⚠️ কানেকশন সমস্যা</b>
-                <br />
-                {error}
+            <div className="page-enter">
+                <div className="alert-error">
+                    <b>⚠️ কানেকশন সমস্যা</b>
+                    <br />
+                    {error}
+                    <br />
+                    <br />
+                    <button className="mm-btn" onClick={() => window.location.reload()}>
+                        আবার চেষ্টা করুন
+                    </button>
+                </div>
             </div>
         );
     }
@@ -287,8 +388,6 @@ export default function GroceryBasket() {
     return (
         <div className="page-enter">
             <section className="page-hero" style={{ marginBottom: 20 }}>
-
-
                 <h1 className="page-title">
                     বাজারের লিস্ট বানান, কম দামের বাজার থেকে কিনুন।
                 </h1>
@@ -354,7 +453,10 @@ export default function GroceryBasket() {
                             <h2 className="section-title">পণ্য যোগ করুন</h2>
 
                             <p className="section-note">
-                                দেখানো হচ্ছে {bnNum(visibleProducts.length)}টি পণ্য — {divisionId === "all" ? "সব বিভাগ" : `${selectedDivision?.name} বিভাগ`}.
+                                দেখানো হচ্ছে {bnNum(visibleProducts.length)}টি পণ্য —{" "}
+                                {divisionId === "all"
+                                    ? "সব বিভাগ"
+                                    : `${selectedDivision?.name} বিভাগ`}
                             </p>
                         </div>
                     </div>
@@ -374,7 +476,7 @@ export default function GroceryBasket() {
                                         key={key}
                                         className={`mini-product-btn ${inBasket ? "active" : ""}`}
                                         onClick={() =>
-                                            updateQty(key, (basket[key] || 0) + step(p.unit))
+                                            updateQty(key, +((basket[key] || 0) + step(p.unit)).toFixed(2))
                                         }
                                     >
                                         <div className="mini-product-img">
@@ -425,7 +527,8 @@ export default function GroceryBasket() {
 
                         {hiddenBasketCount > 0 && divisionId !== "all" && (
                             <div className="basket-warning">
-                                {bnNum(hiddenBasketCount)}টি সেভ করা পণ্য লুকানো আছে, কারণ এগুলো {selectedDivision?.name} বিভাগে পাওয়া যাচ্ছে না।
+                                {bnNum(hiddenBasketCount)}টি সেভ করা পণ্য লুকানো আছে, কারণ এগুলো{" "}
+                                {selectedDivision?.name} বিভাগে পাওয়া যাচ্ছে না।
                             </div>
                         )}
 
@@ -508,9 +611,7 @@ export default function GroceryBasket() {
                                 </div>
 
                                 <div className="basket-total-card">
-                                    <span>
-                                        মোট ({bnNum(items.length)}টি পণ্য)
-                                    </span>
+                                    <span>মোট ({bnNum(items.length)}টি পণ্য)</span>
 
                                     <strong>{bnTk(total, 2)}</strong>
                                 </div>
@@ -574,7 +675,8 @@ export default function GroceryBasket() {
 
                                 {plan.unresolved_products?.length > 0 && (
                                     <div className="basket-unresolved">
-                                        এই পণ্যের বাজার ডাটা নেই{divisionId !== "all" ? " এই বিভাগে" : ""}:
+                                        এই পণ্যের বাজার ডাটা নেই
+                                        {divisionId !== "all" ? " এই বিভাগে" : ""}:{" "}
                                         {plan.unresolved_products.map(formatProductName).join(", ")}
                                     </div>
                                 )}
@@ -597,13 +699,19 @@ function SectionCard({ title, children, compact = false }) {
 }
 
 function AiSummary({ text }) {
-    const sentences = text
+    const safeText = String(text || "").trim();
+
+    if (!safeText) {
+        return <p className="ai-summary-text">AI ব্যাখ্যা পাওয়া যায়নি।</p>;
+    }
+
+    const sentences = safeText
         .split(/(?<=[।.!?])\s+/)
         .map((s) => s.trim())
         .filter(Boolean);
 
     if (sentences.length <= 1) {
-        return <p className="ai-summary-text">{text}</p>;
+        return <p className="ai-summary-text">{safeText}</p>;
     }
 
     return (

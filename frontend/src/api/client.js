@@ -22,27 +22,41 @@ export const getPricesToday = () =>
     });
 
 export const getPriceHistory = (p, days = 90) =>
-    api.get(`/prices/history/${p}?days=${days}`);
+    api.get(`/prices/history/${p}`, { params: { days } });
 
 export const getMarketCompare = (p) =>
     api.get(`/prices/markets/${p}`);
 
 export const getForecast = (p, market, days = 7) =>
-    api.get(`/forecast/${p}`, { params: market ? { market, days } : { days } });
+    api.get(`/forecast/${p}`, {
+        timeout: 180000,
+        params: market ? { market, days } : { days },
+    });
 
 export const getExplanation = (p, market) =>
-    api.get(`/explain/${p}`, { params: market ? { market } : {} });
+    api.get(`/explain/${p}`, {
+        timeout: 180000,
+        params: market ? { market } : {},
+    });
 
 export const getProducts = () =>
-    api.get("/products");
+    api.get("/products", {
+        timeout: 180000,
+        params: { t: Date.now() },
+        headers: { "Cache-Control": "no-cache" },
+    });
 
 export const postFairPrice = (product, paid_price) =>
-    api.post("/fair-price-check", { product, paid_price });
+    api.post("/fair-price-check", { product, paid_price }, { timeout: 180000 });
 
 export const optimizeBasket = (items, markets) =>
-    api.post("/basket/optimize", markets && markets.length ? { items, markets } : { items });
+    api.post(
+        "/basket/optimize",
+        markets && markets.length ? { items, markets } : { items },
+        { timeout: 180000 }
+    );
 
 export const postAgentChat = (message, history = []) =>
-    api.post("/chat", { message, history }, { timeout: 90000 });
+    api.post("/chat", { message, history }, { timeout: 180000 });
 
 export default api;
