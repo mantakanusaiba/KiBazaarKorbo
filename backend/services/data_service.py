@@ -82,12 +82,34 @@ def _sanitize(records: list[dict]) -> list[dict]:
     return records
 
 def get_latest_prices() -> list[dict]:
+    """
+    Return the latest available price for each product in each market.
+
+    We should not filter only by the single global latest date, because DAM
+    live updates can be partial. Some products/markets may not appear on the
+    newest date, which made /api/prices/today return [] after forecastable
+    filtering.
+    """
     df = load_data()
-    latest_date = df["date"].max()
-    latest = df[df["date"] == latest_date]
+
+    if df.empty:
+        return []
+
+    latest = (
+        df.dropna(subset=["standard_key", "market"])
+        .sort_values("date")
+        .groupby(["standard_key", "market"], as_index=False, sort=False)
+        .tail(1)
+        .copy()
+    )
+
+    latest["date"] = latest["date"].dt.strftime("%Y-%m-%d")
+
     records = _sanitize(latest.to_dict(orient="records"))
+
     for record in records:
         record["unit"] = _label_unit(record.get("unit"))
+
     return records
 
 def get_price_history(product: str, days: int = 90) -> list[dict]:
