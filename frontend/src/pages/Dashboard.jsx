@@ -13,13 +13,15 @@ import {
 } from "../utils/productAssets";
 import { bnNum, bnTk } from "../utils/banglaFormat";
 
-function StatCard({ label, value, icon, tone = "var(--brand-700)" }) {
+function StatCard({ label, value, tone = "var(--brand-700)" }) {
     return (
         <div className="glass-card stat-card">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
                 <div>
                     <div className="stat-label">{label}</div>
-                    <div className="stat-value" style={{ color: tone }}>{value}</div>
+                    <div className="stat-value" style={{ color: tone }}>
+                        {value}
+                    </div>
                 </div>
             </div>
         </div>
@@ -117,9 +119,10 @@ function formatUnit(unit) {
 }
 
 function computeTrend(item) {
-    const min = Number(item.min_price) || 0;
-    const max = Number(item.max_price) || 0;
-    const avg = Number(item.avg_price) || 0;
+    const min = Number(item?.min_price) || 0;
+    const max = Number(item?.max_price) || 0;
+    const avg = Number(item?.avg_price) || 0;
+
     const mid = (min + max) / 2;
     const diff = avg - mid;
 
@@ -131,7 +134,26 @@ function computeTrend(item) {
 }
 
 function HeroProductCard({ item }) {
-    if (!item) return null;
+    if (!item) {
+        return (
+            <div
+                style={{
+                    minHeight: 240,
+                    display: "grid",
+                    placeItems: "center",
+                    borderRadius: 26,
+                    background: "var(--hero-card)",
+                    border: "1px solid var(--hero-border)",
+                    color: "var(--hero-text-light)",
+                    fontWeight: 800,
+                    textAlign: "center",
+                    padding: 20,
+                }}
+            >
+                আজকের বিশেষ দাম লোড হচ্ছে...
+            </div>
+        );
+    }
 
     const trend = computeTrend(item);
     const percent = item.avg_price ? Math.round((trend.diff / item.avg_price) * 100) : 0;
@@ -142,21 +164,18 @@ function HeroProductCard({ item }) {
             color: "#b91c1c",
             background: "#fee2e2",
             text: `গতকালের তুলনায় ${bnNum(percent)}% বেশি`,
-            tip: "💡 একটু অপেক্ষা করে কেনা ভালো",
         },
         down: {
             icon: "⬇",
             color: "var(--hero-success)",
             background: "var(--hero-success-bg)",
             text: `গতকালের তুলনায় ${bnNum(percent)}% কম`,
-            tip: "💡 এখন কিনলে ভালো সময়",
         },
         stable: {
             icon: "➡",
             color: "var(--hero-text)",
             background: "var(--hero-bg-soft)",
             text: "দাম স্থিতিশীল",
-            tip: "💡 যেকোনো সময় কিনতে পারেন",
         },
     }[trend.type];
 
@@ -200,10 +219,21 @@ function HeroProductCard({ item }) {
                         objectFit: "contain",
                         padding: 12,
                     }}
+                    onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                    }}
                 />
             </div>
 
-            <div style={{ minWidth: 0, height: "100%", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+            <div
+                style={{
+                    minWidth: 0,
+                    height: "100%",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "center",
+                }}
+            >
                 <h2
                     style={{
                         color: "var(--hero-heading)",
@@ -298,13 +328,49 @@ export default function Dashboard() {
     const navigate = useNavigate();
 
     useEffect(() => {
+        let alive = true;
+
+        setLoading(true);
+        setError(null);
+
         getPricesToday()
-            .then((r) => setPrices(r.data || []))
-            .catch(() => setError("দামের ডাটা লোড করা যায়নি। সার্ভার চালু আছে কি না দেখুন।"))
-            .finally(() => setLoading(false));
+            .then((r) => {
+                const rows = Array.isArray(r.data)
+                    ? r.data
+                    : Array.isArray(r.data?.data)
+                        ? r.data.data
+                        : [];
+
+                console.log("Dashboard prices loaded:", rows.length);
+                console.log("First dashboard row:", rows[0]);
+
+                if (alive) {
+                    setPrices(rows);
+                }
+            })
+            .catch((err) => {
+                console.error("Dashboard price load failed:", err);
+
+                if (alive) {
+                    setError(
+                        `দামের ডাটা লোড করা যায়নি। Backend জেগে উঠতে সময় নিতে পারে। Error: ${err?.message || "unknown"}`
+                    );
+                }
+            })
+            .finally(() => {
+                if (alive) {
+                    setLoading(false);
+                }
+            });
+
+        return () => {
+            alive = false;
+        };
     }, []);
 
-    const availableMarketKeys = useMemo(() => new Set(prices.map((p) => p.market)), [prices]);
+    const availableMarketKeys = useMemo(() => {
+        return new Set(prices.map((p) => p.market).filter(Boolean));
+    }, [prices]);
 
     const marketsForDivision = useMemo(() => {
         if (divisionId === "all") return [];
@@ -339,27 +405,34 @@ export default function Dashboard() {
             const key = p.standard_key;
             if (!key) return;
 
+            const avgPrice = Number(p.avg_price) || 0;
+            const minPrice = Number(p.min_price) || avgPrice || 0;
+            const maxPrice = Number(p.max_price) || avgPrice || 0;
+
             if (!byProduct[key]) {
                 byProduct[key] = {
                     ...p,
                     standard_key: key,
                     product: formatProductName(key),
-                    avg_price: Number(p.avg_price) || 0,
-                    min_price: Number(p.min_price) || 0,
-                    max_price: Number(p.max_price) || 0,
+                    avg_price: avgPrice,
+                    min_price: minPrice,
+                    max_price: maxPrice,
                     unit: p.unit,
                     count: 1,
                 };
             } else {
-                byProduct[key].avg_price += Number(p.avg_price) || 0;
-                byProduct[key].min_price = Math.min(
-                    byProduct[key].min_price,
-                    Number(p.min_price) || byProduct[key].min_price
-                );
-                byProduct[key].max_price = Math.max(
-                    byProduct[key].max_price,
-                    Number(p.max_price) || byProduct[key].max_price
-                );
+                byProduct[key].avg_price += avgPrice;
+
+                if (minPrice > 0) {
+                    byProduct[key].min_price =
+                        byProduct[key].min_price > 0
+                            ? Math.min(byProduct[key].min_price, minPrice)
+                            : minPrice;
+                }
+
+                if (maxPrice > 0) {
+                    byProduct[key].max_price = Math.max(byProduct[key].max_price, maxPrice);
+                }
 
                 if (!byProduct[key].unit && p.unit) {
                     byProduct[key].unit = p.unit;
@@ -424,7 +497,9 @@ export default function Dashboard() {
         });
     }, [prices, marketKey, divisionMarketKeys]);
 
-    const marketsInView = new Set(filteredRows.map((p) => p.market)).size;
+    const marketsInView = useMemo(() => {
+        return new Set(filteredRows.map((p) => p.market).filter(Boolean)).size;
+    }, [filteredRows]);
 
     const scopeLabel =
         marketKey !== "all"
@@ -436,12 +511,24 @@ export default function Dashboard() {
     if (loading) {
         return (
             <div className="page-enter">
-                <div className="skeleton" style={{ height: 250, borderRadius: 34, marginBottom: 20 }} />
-
-                <div className="product-grid">
-                    {Array.from({ length: 8 }).map((_, i) => (
-                        <div key={i} className="skeleton" style={{ height: 286, borderRadius: 26 }} />
-                    ))}
+                <div
+                    className="glass-card"
+                    style={{
+                        padding: 40,
+                        borderRadius: 30,
+                        textAlign: "center",
+                        marginTop: 40,
+                        minHeight: 220,
+                        display: "grid",
+                        placeItems: "center",
+                    }}
+                >
+                    <div>
+                        <h2 className="section-title">ড্যাশবোর্ড লোড হচ্ছে...</h2>
+                        <p className="section-note">
+                            Hugging Face backend জেগে উঠতে একটু সময় লাগতে পারে। অনুগ্রহ করে অপেক্ষা করুন।
+                        </p>
+                    </div>
                 </div>
             </div>
         );
@@ -449,10 +536,20 @@ export default function Dashboard() {
 
     if (error) {
         return (
-            <div className="alert-error">
-                <b>⚠️ কানেকশন সমস্যা</b>
-                <br />
-                {error}
+            <div className="page-enter">
+                <div className="alert-error">
+                    <b>⚠️ কানেকশন সমস্যা</b>
+                    <br />
+                    {error}
+                    <br />
+                    <br />
+                    <button
+                        className="mm-btn"
+                        onClick={() => window.location.reload()}
+                    >
+                        আবার চেষ্টা করুন
+                    </button>
+                </div>
             </div>
         );
     }
@@ -557,9 +654,9 @@ export default function Dashboard() {
             </section>
 
             <div className="stats-grid" style={{ marginTop: 16 }}>
-                <StatCard label="দেখানো পণ্য" value={bnNum(items.length)} icon="🧺" />
-                <StatCard label="দেখানো বাজার" value={bnNum(marketsInView)} icon="📍" />
-                <StatCard label="এখন দেখা হচ্ছে" value={scopeLabel} icon="🌎" tone="var(--gray-900)" />
+                <StatCard label="দেখানো পণ্য" value={bnNum(items.length)} />
+                <StatCard label="দেখানো বাজার" value={bnNum(marketsInView)} />
+                <StatCard label="এখন দেখা হচ্ছে" value={scopeLabel} tone="var(--gray-900)" />
             </div>
 
             <div className="section-head">
