@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getPricesToday } from "../api/client";
+import { getCachedPricesTodayData, getPricesToday } from "../api/client";
 import PriceCard from "../components/PriceCard";
 import { DIVISIONS, marketLabel } from "../data/marketRegions";
 import {
@@ -316,8 +316,10 @@ function HeroProductCard({ item }) {
 }
 
 export default function Dashboard() {
-    const [prices, setPrices] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const cachedPrices = getCachedPricesTodayData();
+
+    const [prices, setPrices] = useState(cachedPrices || []);
+    const [loading, setLoading] = useState(!cachedPrices);
     const [error, setError] = useState(null);
     const [divisionId, setDivisionId] = useState("all");
     const [marketKey, setMarketKey] = useState("all");
@@ -330,7 +332,15 @@ export default function Dashboard() {
     useEffect(() => {
         let alive = true;
 
-        setLoading(true);
+        const cached = getCachedPricesTodayData();
+
+        if (cached && cached.length > 0) {
+            setPrices(cached);
+            setLoading(false);
+        } else {
+            setLoading(true);
+        }
+
         setError(null);
 
         getPricesToday()
@@ -351,7 +361,7 @@ export default function Dashboard() {
             .catch((err) => {
                 console.error("Dashboard price load failed:", err);
 
-                if (alive) {
+                if (alive && (!cached || cached.length === 0)) {
                     setError(
                         `দামের ডাটা লোড করা যায়নি। Backend জেগে উঠতে সময় নিতে পারে। Error: ${err?.message || "unknown"}`
                     );
@@ -463,7 +473,7 @@ export default function Dashboard() {
     }, [heroSlides, currentSlide]);
 
     useEffect(() => {
-        if (heroSlides.length <= 1) return;
+        if (heroSlides.length <= 1) return undefined;
 
         const timer = setInterval(() => {
             setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
@@ -543,10 +553,7 @@ export default function Dashboard() {
                     {error}
                     <br />
                     <br />
-                    <button
-                        className="mm-btn"
-                        onClick={() => window.location.reload()}
-                    >
+                    <button className="mm-btn" onClick={() => window.location.reload()}>
                         আবার চেষ্টা করুন
                     </button>
                 </div>
@@ -566,7 +573,9 @@ export default function Dashboard() {
                 }}
             >
                 <div>
-                    <h1 className="page-title">বাংলাদেশের বাজার দাম দেখে স্মার্টভাবে কেনাকাটা করুন।</h1>
+                    <h1 className="page-title">
+                        বাংলাদেশের বাজার দাম দেখে স্মার্টভাবে কেনাকাটা করুন।
+                    </h1>
 
                     <p className="page-subtitle">
                         পণ্য খুঁজুন, বিভাগ বা বাজার বাছুন, দাম তুলনা করুন এবং কম খরচে বাজারের লিস্ট বানান।
@@ -677,7 +686,9 @@ export default function Dashboard() {
                     >
                         <span>{c.icon}</span>
                         {c.label}
-                        <span style={{ opacity: 0.72 }}>({bnNum(categoryCounts[c.id] || 0)})</span>
+                        <span style={{ opacity: 0.72 }}>
+                            ({bnNum(categoryCounts[c.id] || 0)})
+                        </span>
                     </button>
                 ))}
             </div>
