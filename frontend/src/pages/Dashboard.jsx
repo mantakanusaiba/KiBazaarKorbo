@@ -518,15 +518,10 @@ export default function Dashboard() {
                 ? `${DIVISIONS.find((d) => d.id === divisionId)?.name} বিভাগ`
                 : "বাংলাদেশের সব বাজার";
 
-    if (loading) {
+   if (loading) {
     return (
         <div className="page-enter">
             <div className="dashboard-loader-card glass-card">
-                <div className="dashboard-loader-logo">
-                    <div className="dashboard-loader-ring"></div>
-                    <div className="dashboard-loader-core">কি?</div>
-                </div>
-
                 <h2 className="section-title">ড্যাশবোর্ড লোড হচ্ছে...</h2>
 
                 <p className="section-note dashboard-loader-text">
