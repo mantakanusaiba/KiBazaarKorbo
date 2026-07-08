@@ -1949,6 +1949,7 @@ img {
         font-size: 15px;
     }
 }
+
 .dashboard-loader-card {
     padding: 44px 28px;
     border-radius: 32px;
@@ -2030,7 +2031,9 @@ img {
 }
 
 @keyframes dashboardPulse {
-    0%, 100% {
+
+    0%,
+    100% {
         transform: scale(1);
         opacity: 1;
     }
@@ -2042,7 +2045,9 @@ img {
 }
 
 @keyframes dashboardDotPulse {
-    0%, 100% {
+
+    0%,
+    100% {
         transform: translateY(0);
         opacity: 0.35;
     }
@@ -2052,6 +2057,7 @@ img {
         opacity: 1;
     }
 }
+
 /* =========================================================
    MOBILE RESPONSIVE FIX — Ki Bazaar Korbo
    Paste at the very bottom of index.css
@@ -2400,7 +2406,7 @@ canvas {
     }
 
     /* Dashboard hero product card fix */
-    .page-hero > div:last-child {
+    .page-hero>div:last-child {
         min-width: 0 !important;
         padding: 14px !important;
         border-radius: 22px !important;
@@ -3054,12 +3060,12 @@ body,
         width: 100% !important;
     }
 
-    .basket-layout > section {
+    .basket-layout>section {
         min-width: 0 !important;
         width: 100% !important;
     }
 
-    .basket-layout > section > .glass-card {
+    .basket-layout>section>.glass-card {
         padding: 13px !important;
         border-radius: 22px !important;
         margin-bottom: 14px !important;
@@ -3441,5 +3447,54 @@ body,
 
     .mini-product-img {
         height: 150px !important;
+    }
+}
+
+
+/* Simple Forecast Loader */
+
+.simple-model-loader {
+    margin-bottom: 18px;
+    padding: 22px;
+    border-radius: 20px;
+    background: #ffffff;
+    border: 1px solid var(--lemon-border);
+    box-shadow: 0 12px 30px rgba(47, 93, 40, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+}
+
+.simple-spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid var(--hero-bg-soft);
+    border-top-color: var(--hero-primary);
+    border-radius: 50%;
+    animation: simpleSpin 0.8s linear infinite;
+}
+
+.simple-model-loader p {
+    margin: 0;
+    color: var(--hero-heading);
+    font-size: 15px;
+    font-weight: 850;
+}
+
+@keyframes simpleSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (max-width: 640px) {
+    .simple-model-loader {
+        padding: 18px 14px;
+        border-radius: 18px;
+    }
+
+    .simple-model-loader p {
+        font-size: 14px;
     }
 }

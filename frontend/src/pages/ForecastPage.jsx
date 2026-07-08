@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { getExplanation, getForecast } from "../api/client";
 import ProductSelector from "../components/ProductSelector";
-import { marketLabel } from "../data/marketRegions";
 import useSessionState from "../hooks/useSessionState";
 import {
     computeConfidence,
@@ -60,10 +59,7 @@ function normalizeAdvice(advice = "") {
         return "buy_now";
     }
 
-    if (
-        text.includes("wait") ||
-        text.includes("অপেক্ষা")
-    ) {
+    if (text.includes("wait") || text.includes("অপেক্ষা")) {
         return "wait";
     }
 
@@ -77,22 +73,6 @@ function getChangePct(result) {
     if (!current || !next) return 0;
 
     return ((next - current) / current) * 100;
-}
-
-function getTrendSentence(week) {
-    const trend = computeTrend(week);
-
-    if (!trend) return "মডেল এখনো পুরো ট্রেন্ড বুঝছে।";
-
-    if (trend.direction === "rising") {
-        return `মডেল বলছে সামনে দাম প্রায় ${bnPct(Math.abs(trend.pct), 1)} বাড়তে পারে।`;
-    }
-
-    if (trend.direction === "falling") {
-        return `মডেল বলছে সামনে দাম প্রায় ${bnPct(Math.abs(trend.pct), 1)} কমতে পারে।`;
-    }
-
-    return "মডেল বলছে সামনে দাম প্রায় একই থাকতে পারে।";
 }
 
 function getChangeColor(changePct) {
@@ -156,7 +136,14 @@ export default function ForecastPage() {
                 <div style={{ display: "grid", gap: 12 }}>
                     <ProductSelector value={selected} onChange={setSelected} />
 
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
+                    <div
+                        style={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: 10,
+                            alignItems: "center",
+                        }}
+                    >
                         <button
                             onClick={run}
                             disabled={loading || !selected}
@@ -175,6 +162,13 @@ export default function ForecastPage() {
             {error && (
                 <div className="alert-error" style={{ marginBottom: 18 }}>
                     ⚠️ {error}
+                </div>
+            )}
+
+            {loading && (
+                <div className="simple-model-loader">
+                    <div className="simple-spinner"></div>
+                    <p>AI মডেল ফোরকাস্ট তৈরি করছে...</p>
                 </div>
             )}
 
@@ -209,7 +203,8 @@ function ForecastHero({ selected }) {
                 gridTemplateColumns: "minmax(0, 1fr) 340px",
                 gap: 28,
                 alignItems: "center",
-                background: "linear-gradient(135deg, #F5FAEF 0%, #EEF7E7 35%, #F8FCF5 70%, #EAF6E1 100%)",
+                background:
+                    "linear-gradient(135deg, #F5FAEF 0%, #EEF7E7 35%, #F8FCF5 70%, #EAF6E1 100%)",
                 border: "1px solid var(--hero-border)",
                 boxShadow: "0 18px 40px rgba(47, 93, 40, 0.1)",
             }}
@@ -226,7 +221,6 @@ function ForecastHero({ selected }) {
             />
 
             <div style={{ position: "relative", zIndex: 1 }}>
-
                 <h1
                     style={{
                         margin: 0,
@@ -253,7 +247,7 @@ function ForecastHero({ selected }) {
                         fontWeight: 600,
                     }}
                 >
-                    DAM ডাটা, দামের ট্রেন্ড, আবহাওয়া, সপ্তাহান্ত ও ছুটির তথ্য দেখে AI সহজ ভাষায় পরামর্শ দেয়।
+                    গণপ্রজাতন্ত্রী বাংলাদেশ সরকারের কৃষি সেবা পোর্টাল ডাটা , দামের ট্রেন্ড, আবহাওয়া, সপ্তাহান্ত ও ছুটির তথ্য দেখে AI সহজ ভাষায় পরামর্শ দেয়।
                 </p>
             </div>
 
@@ -334,7 +328,14 @@ function MainForecastCard({ selected, result, week }) {
                 }}
             >
                 <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                    <div
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 10,
+                            marginBottom: 8,
+                        }}
+                    >
                         <div>
                             <h2
                                 style={{
@@ -376,7 +377,13 @@ function MainForecastCard({ selected, result, week }) {
                             {advice.title}
                         </div>
 
-                        <div style={{ fontSize: 14, color: "var(--hero-text)", lineHeight: 1.6 }}>
+                        <div
+                            style={{
+                                fontSize: 14,
+                                color: "var(--hero-text)",
+                                lineHeight: 1.6,
+                            }}
+                        >
                             {advice.short}
                         </div>
                     </div>
@@ -413,7 +420,13 @@ function MainForecastCard({ selected, result, week }) {
                 <PriceColumn
                     label="সম্ভাব্য পরিবর্তন"
                     value={`${changePct > 0 ? "+" : ""}${bnPct(changePct, 2)}`}
-                    sub={changePct < 0 ? "দাম কমতে পারে" : changePct > 0 ? "দাম বাড়তে পারে" : "প্রায় একই"}
+                    sub={
+                        changePct < 0
+                            ? "দাম কমতে পারে"
+                            : changePct > 0
+                                ? "দাম বাড়তে পারে"
+                                : "প্রায় একই"
+                    }
                     tone={changeColor}
                 />
 
@@ -519,7 +532,13 @@ function PriceColumn({ label, value, sub, tone }) {
             </div>
 
             {sub && (
-                <div style={{ marginTop: 4, fontSize: 13, color: "var(--hero-text-light)" }}>
+                <div
+                    style={{
+                        marginTop: 4,
+                        fontSize: 13,
+                        color: "var(--hero-text-light)",
+                    }}
+                >
                     {sub}
                 </div>
             )}
@@ -548,12 +567,24 @@ function SmallMetric({ label, value, sub }) {
                 {label}
             </div>
 
-            <div style={{ fontSize: 16, fontWeight: 950, color: "var(--hero-heading)" }}>
+            <div
+                style={{
+                    fontSize: 16,
+                    fontWeight: 950,
+                    color: "var(--hero-heading)",
+                }}
+            >
                 {value}
             </div>
 
             {sub && (
-                <div style={{ marginTop: 4, fontSize: 13, color: "var(--hero-text-light)" }}>
+                <div
+                    style={{
+                        marginTop: 4,
+                        fontSize: 13,
+                        color: "var(--hero-text-light)",
+                    }}
+                >
                     {sub}
                 </div>
             )}
@@ -606,7 +637,14 @@ function AIReasonCard({ result }) {
             >
                 <ul className="ai-summary-list">
                     {points.map((point, index) => (
-                        <li key={index} style={{ fontSize: 16, lineHeight: 1.7, color: "var(--hero-text)" }}>
+                        <li
+                            key={index}
+                            style={{
+                                fontSize: 16,
+                                lineHeight: 1.7,
+                                color: "var(--hero-text)",
+                            }}
+                        >
                             {point}।
                         </li>
                     ))}
@@ -668,7 +706,11 @@ function FuturePriceCard({ week, currentAvg }) {
                     {week.slice(0, 7).map((item, index) => (
                         <FutureStep
                             key={item.day || index}
-                            label={item.day === 1 ? "পরের আপডেট" : `${bnNum(item.day)} দিন পরে`}
+                            label={
+                                item.day === 1
+                                    ? "পরের আপডেট"
+                                    : `${bnNum(item.day)} দিন পরে`
+                            }
                             price={item.predicted_price}
                             tone={getChangeColor(safeNumber(item.change_pct))}
                             festival={item.is_festival}
