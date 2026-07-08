@@ -173,7 +173,8 @@ const PRODUCT_IMAGE_FILES = [
   "uchehhe_bitter_gourd.jpg",
   "watermelon.jpg",
   "jackfruit_small.jpg",
-  "patal_pointed_gourd.jpg"
+  "patal_pointed_gourd.jpg",
+  "imported_red,jpeg",
 ];
 
 const DEFAULT_IMAGE = "360_F_177224431_6S50Gr64wFWjkDHBGXq7PkaG5kcrgEgd.jpg";
