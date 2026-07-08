@@ -174,7 +174,7 @@ const PRODUCT_IMAGE_FILES = [
   "watermelon.jpg",
   "jackfruit_small.jpg",
   "patal_pointed_gourd.jpg",
-  "imported_red,jpeg",
+  "imported_red.jpeg",
 ];
 
 const DEFAULT_IMAGE = "360_F_177224431_6S50Gr64wFWjkDHBGXq7PkaG5kcrgEgd.jpg";
