@@ -7,6 +7,7 @@ import FairPriceChecker from "./pages/FairPriceChecker";
 import MarketComparison from "./pages/MarketComparison";
 import GroceryBasket from "./pages/GroceryBasket";
 import AgentChat from "./pages/AgentChat";
+import Footer from "./components/Footer";
 
 export default function App() {
     return (
@@ -24,6 +25,7 @@ export default function App() {
                         <Route path="/assistant" element={<AgentChat />} />
                     </Routes>
                 </main>
+                 <Footer />
             </div>
         </BrowserRouter>
     );
