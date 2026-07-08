@@ -2982,3 +2982,464 @@ canvas {
         font-size: 13.5px;
     }
 }
+
+
+/* =========================================================
+   Grocery Basket Mobile Responsive Fix
+   Paste at the VERY BOTTOM of index.css
+   ========================================================= */
+
+html,
+body,
+#root {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+.page-enter {
+    max-width: 100%;
+}
+
+/* Tablet */
+@media (max-width: 1100px) {
+    .basket-layout {
+        grid-template-columns: 1fr !important;
+        gap: 22px !important;
+    }
+
+    .basket-sidebar {
+        position: static !important;
+        top: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+        padding-right: 0 !important;
+        padding-bottom: 0 !important;
+    }
+
+    .basket-items-list {
+        max-height: none !important;
+        overflow: visible !important;
+    }
+}
+
+/* Mobile */
+@media (max-width: 760px) {
+    .app-main {
+        padding: 16px 12px 42px !important;
+    }
+
+    .page-hero {
+        padding: 28px 18px !important;
+        border-radius: 24px !important;
+        margin-bottom: 16px !important;
+    }
+
+    .page-title {
+        font-size: 28px !important;
+        line-height: 1.2 !important;
+        letter-spacing: -0.4px !important;
+    }
+
+    .page-subtitle {
+        font-size: 14.5px !important;
+        line-height: 1.7 !important;
+        margin-top: 10px !important;
+    }
+
+    .basket-layout {
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        gap: 18px !important;
+        width: 100% !important;
+    }
+
+    .basket-layout > section {
+        min-width: 0 !important;
+        width: 100% !important;
+    }
+
+    .basket-layout > section > .glass-card {
+        padding: 13px !important;
+        border-radius: 22px !important;
+        margin-bottom: 14px !important;
+    }
+
+    .basket-filter-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+
+    .filter-label {
+        font-size: 11.5px !important;
+        letter-spacing: 0.4px !important;
+    }
+
+    .mm-input,
+    .mm-select {
+        min-height: 46px !important;
+        border-radius: 14px !important;
+        font-size: 14.5px !important;
+        padding: 11px 13px !important;
+    }
+
+    .category-strip {
+        display: flex !important;
+        gap: 8px !important;
+        overflow-x: auto !important;
+        padding: 2px 2px 10px !important;
+        margin-top: 12px !important;
+        scrollbar-width: none !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+
+    .category-strip::-webkit-scrollbar {
+        display: none !important;
+    }
+
+    .category-chip {
+        flex: 0 0 auto !important;
+        padding: 8px 12px !important;
+        font-size: 12.5px !important;
+        border-radius: 999px !important;
+        white-space: nowrap !important;
+    }
+
+    .section-head {
+        align-items: flex-start !important;
+        margin: 18px 0 14px !important;
+    }
+
+    .section-title {
+        font-size: 21px !important;
+        line-height: 1.25 !important;
+    }
+
+    .section-note {
+        font-size: 13px !important;
+        line-height: 1.6 !important;
+    }
+
+    .basket-product-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 12px !important;
+        width: 100% !important;
+    }
+
+    .mini-product-btn {
+        border-radius: 18px !important;
+        min-width: 0 !important;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06) !important;
+    }
+
+    .mini-product-btn:hover {
+        transform: none !important;
+    }
+
+    .mini-product-img {
+        height: 122px !important;
+        border-radius: 18px 18px 0 0 !important;
+    }
+
+    .mini-product-img::after {
+        top: 9px !important;
+        right: 9px !important;
+        width: 11px !important;
+        height: 11px !important;
+        border-width: 2px !important;
+        box-shadow: 0 0 0 4px rgba(109, 182, 76, 0.16) !important;
+    }
+
+    .mini-product-content {
+        padding: 10px 9px 13px !important;
+    }
+
+    .mini-product-name {
+        font-size: 14px !important;
+        line-height: 1.3 !important;
+        margin-bottom: 4px !important;
+    }
+
+    .mini-product-price {
+        font-size: 13px !important;
+        line-height: 1.3 !important;
+    }
+
+    .basket-panel {
+        padding: 13px !important;
+        border-radius: 22px !important;
+    }
+
+    .basket-header {
+        align-items: flex-start !important;
+        gap: 10px !important;
+        margin-bottom: 12px !important;
+    }
+
+    .basket-header .section-title {
+        font-size: 18px !important;
+    }
+
+    .basket-header .mm-btn,
+    .mm-btn.danger {
+        padding: 8px 12px !important;
+        font-size: 12.5px !important;
+        border-radius: 12px !important;
+        white-space: nowrap !important;
+    }
+
+    .basket-warning {
+        font-size: 12px !important;
+        line-height: 1.6 !important;
+        padding: 10px 11px !important;
+        border-radius: 14px !important;
+    }
+
+    .basket-empty,
+    .empty-state {
+        padding: 26px 14px !important;
+        border-radius: 18px !important;
+        font-size: 13.5px !important;
+        line-height: 1.6 !important;
+    }
+
+    .basket-items-list {
+        gap: 10px !important;
+        max-height: none !important;
+        overflow: visible !important;
+        padding-right: 0 !important;
+    }
+
+    .basket-row {
+        grid-template-columns: 58px minmax(0, 1fr) !important;
+        grid-template-areas:
+            "img info"
+            "img qty"
+            "price price" !important;
+        gap: 8px 11px !important;
+        padding: 11px !important;
+        border-radius: 18px !important;
+        align-items: center !important;
+    }
+
+    .basket-row-img {
+        grid-area: img !important;
+        width: 58px !important;
+        height: 58px !important;
+        border-radius: 14px !important;
+    }
+
+    .basket-item-info {
+        grid-area: info !important;
+        padding-right: 25px !important;
+        min-width: 0 !important;
+    }
+
+    .basket-item-name {
+        font-size: 14.5px !important;
+        line-height: 1.28 !important;
+        word-break: break-word !important;
+    }
+
+    .basket-item-unit {
+        font-size: 11.5px !important;
+        margin-top: 3px !important;
+    }
+
+    .basket-row .qty-control {
+        grid-area: qty !important;
+        width: fit-content !important;
+        max-width: 100% !important;
+        gap: 7px !important;
+        padding: 4px !important;
+        border-radius: 12px !important;
+    }
+
+    .qty-btn {
+        width: 25px !important;
+        height: 25px !important;
+        border-radius: 8px !important;
+        font-size: 14px !important;
+    }
+
+    .qty-text {
+        min-width: 44px !important;
+        font-size: 12.5px !important;
+    }
+
+    .basket-line-total {
+        grid-area: price !important;
+        font-size: 15px !important;
+        padding-top: 2px !important;
+        color: var(--hero-heading) !important;
+    }
+
+    .basket-remove-btn {
+        right: 10px !important;
+        top: 10px !important;
+        font-size: 16px !important;
+    }
+
+    .basket-total-card {
+        padding: 14px !important;
+        border-radius: 18px !important;
+        margin-bottom: 12px !important;
+    }
+
+    .basket-total-card span {
+        font-size: 13.5px !important;
+    }
+
+    .basket-total-card strong {
+        font-size: 22px !important;
+    }
+
+    .basket-optimize-btn {
+        min-height: 48px !important;
+        border-radius: 14px !important;
+        font-size: 14.5px !important;
+        margin-top: 12px !important;
+        margin-bottom: 10px !important;
+    }
+
+    .basket-plan-result {
+        gap: 12px !important;
+        margin-top: 14px !important;
+        padding-top: 14px !important;
+    }
+
+    .basket-result-heading {
+        padding: 14px !important;
+        border-radius: 18px !important;
+    }
+
+    .basket-result-heading h3 {
+        font-size: 17px !important;
+        line-height: 1.3 !important;
+    }
+
+    .basket-result-heading p {
+        font-size: 12.5px !important;
+        line-height: 1.55 !important;
+    }
+
+    .section-card,
+    .compact-section-card {
+        padding: 13px !important;
+        border-radius: 18px !important;
+    }
+
+    .section-card-title {
+        font-size: 14px !important;
+        margin-bottom: 10px !important;
+    }
+
+    .ai-summary-text,
+    .ai-summary-list li {
+        font-size: 12.8px !important;
+        line-height: 1.65 !important;
+    }
+
+    .ai-summary-list {
+        padding-left: 18px !important;
+    }
+
+    .basket-unresolved {
+        font-size: 12px !important;
+        line-height: 1.6 !important;
+        border-radius: 14px !important;
+    }
+}
+
+/* Small phones */
+@media (max-width: 420px) {
+    .app-main {
+        padding-left: 10px !important;
+        padding-right: 10px !important;
+    }
+
+    .page-hero {
+        padding: 24px 15px !important;
+        border-radius: 20px !important;
+    }
+
+    .page-title {
+        font-size: 25px !important;
+    }
+
+    .page-subtitle {
+        font-size: 13.8px !important;
+    }
+
+    .basket-product-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 10px !important;
+    }
+
+    .mini-product-img {
+        height: 104px !important;
+    }
+
+    .mini-product-content {
+        padding: 9px 7px 11px !important;
+    }
+
+    .mini-product-name {
+        font-size: 13px !important;
+    }
+
+    .mini-product-price {
+        font-size: 12.2px !important;
+    }
+
+    .basket-panel {
+        padding: 11px !important;
+    }
+
+    .basket-row {
+        grid-template-columns: 52px minmax(0, 1fr) !important;
+        gap: 7px 9px !important;
+        padding: 10px !important;
+    }
+
+    .basket-row-img {
+        width: 52px !important;
+        height: 52px !important;
+        border-radius: 13px !important;
+    }
+
+    .basket-item-name {
+        font-size: 13.5px !important;
+    }
+
+    .qty-btn {
+        width: 23px !important;
+        height: 23px !important;
+    }
+
+    .qty-text {
+        min-width: 38px !important;
+        font-size: 12px !important;
+    }
+
+    .basket-total-card {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 5px !important;
+    }
+
+    .basket-total-card strong {
+        font-size: 21px !important;
+    }
+}
+
+/* Extra tiny phones */
+@media (max-width: 350px) {
+    .basket-product-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .mini-product-img {
+        height: 150px !important;
+    }
+}
