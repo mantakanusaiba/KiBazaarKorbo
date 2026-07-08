@@ -360,7 +360,7 @@ export default function GroceryBasket() {
                     <div>
                         <h2 className="section-title">বাজার লিস্ট লোড হচ্ছে...</h2>
                         <p className="section-note">
-                            Hugging Face backend জেগে উঠতে একটু সময় লাগতে পারে। অনুগ্রহ করে অপেক্ষা করুন।
+                            সিস্টেমটি সম্পূর্ণভাবে সচল হতে কিছুটা সময় লাগছে। অনুগ্রহ করে অপেক্ষা করুন।
                         </p>
                     </div>
                 </div>
@@ -372,7 +372,7 @@ export default function GroceryBasket() {
         return (
             <div className="page-enter">
                 <div className="alert-error">
-                    <b>⚠️ কানেকশন সমস্যা</b>
+                    <b>কানেকশন সমস্যা</b>
                     <br />
                     {error}
                     <br />

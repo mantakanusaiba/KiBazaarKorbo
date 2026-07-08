@@ -70,10 +70,8 @@ const UNIT_LABELS_BN = {
     litre: "লিটার",
     litres: "লিটার",
     l: "লিটার",
-
     dozen: "ডজন",
     dz: "ডজন",
-
     piece: "পিস",
     pieces: "পিস",
     pcs: "পিস",
@@ -363,7 +361,7 @@ export default function Dashboard() {
 
                 if (alive && (!cached || cached.length === 0)) {
                     setError(
-                        `দামের ডাটা লোড করা যায়নি। Backend জেগে উঠতে সময় নিতে পারে। Error: ${err?.message || "unknown"}`
+                        `সিস্টেমটি সম্পূর্ণভাবে সচল হতে কিছুটা সময় লাগছে। অনুগ্রহ করে অপেক্ষা করুন। Error: ${err?.message || "unknown"}`
                     );
                 }
             })
@@ -541,7 +539,7 @@ export default function Dashboard() {
         return (
             <div className="page-enter">
                 <div className="alert-error">
-                    <b>⚠️ কানেকশন সমস্যা</b>
+                    <b>কানেকশন সমস্যা</b>
                     <br />
                     {error}
                     <br />
