@@ -10,15 +10,15 @@ The system uses market price data from the **Agricultural Service Portal of Bang
 
 ### Frontend
 
-```txt
+
 https://ki-bazaar-korbo.vercel.app
-```
+
 
 ### Backend
 
-```txt
+
 https://huggingface.co/spaces/Atandrila/kibazaarkorbo-backend/tree/main
-```
+
 
 ---
 
